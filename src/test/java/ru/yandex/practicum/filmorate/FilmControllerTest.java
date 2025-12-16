@@ -15,9 +15,8 @@ class FilmControllerTest {
 
     @BeforeEach
     void setUp() {
-        filmController = new FilmController();
+        filmController = new FilmController(); // теперь работает без сервиса
     }
-
 
     @Test
     void shouldCreateFilm_whenValidFilm() {
@@ -32,7 +31,6 @@ class FilmControllerTest {
         assertNotNull(created.getId());
         assertEquals("Film name", created.getName());
     }
-
 
     @Test
     void shouldThrowException_whenNameIsBlank() {

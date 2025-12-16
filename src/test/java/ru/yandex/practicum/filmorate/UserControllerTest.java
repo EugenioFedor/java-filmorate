@@ -16,7 +16,7 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        userController = new UserController();
+        userController = new UserController(); // теперь работает без сервиса
     }
 
     @Test
