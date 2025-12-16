@@ -1,66 +1,61 @@
-package ru.yandex.practicum.filmorate.controller;
+package ru.yandex.practicum.filmorate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.controller.FilmController;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.time.LocalDate;
-import java.util.Collections;
+import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class FilmControllerTest {
 
-    @Mock
-    private FilmService filmService;
-
-    @InjectMocks
     private FilmController filmController;
+    private FilmService filmService;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        filmService = new FilmService();
+        filmController = new FilmController(filmService);
     }
 
     @Test
-    void shouldReturnAllFilms() {
-        when(filmService.findAll()).thenReturn(Collections.emptyList());
-
-        assertNotNull(filmController.findAll());
-        verify(filmService, times(1)).findAll();
-    }
-
-    @Test
-    void shouldCreateFilm_whenValidFilm() {
+    void addFilm_shouldAddFilm() {
         Film film = new Film();
-        film.setName("Film name");
-        film.setDescription("Description");
-        film.setReleaseDate(LocalDate.of(2000, 1, 1));
-        film.setDuration(120);
+        film.setName("Inception");
+        film.setDescription("A mind-bending thriller");
+        film.setReleaseDate(LocalDate.parse("2010-07-16"));
+        film.setDuration(148);
 
-        when(filmService.create(film)).thenReturn(film);
+        filmController.create(film);
 
-        Film created = filmController.create(film);
-
-        assertEquals("Film name", created.getName());
-        verify(filmService, times(1)).create(film);
+        Collection<Film> films = filmController.getAll();
+        assertTrue(films.contains(film));
     }
 
     @Test
-    void shouldThrowException_whenInvalidFilm() {
-        Film film = new Film();
-        film.setName("");
-        film.setDuration(100);
+    void getAllFilms_shouldReturnAllFilms() {
+        Film film1 = new Film();
+        film1.setName("The Matrix");
+        film1.setDescription("Sci-Fi classic");
+        film1.setReleaseDate(LocalDate.parse("1999-03-31"));
+        film1.setDuration(136);
 
-        when(filmService.create(film)).thenThrow(ValidationException.class);
+        Film film2 = new Film();
+        film2.setName("Interstellar");
+        film2.setDescription("Space exploration");
+        film2.setReleaseDate(LocalDate.parse("2014-11-07"));
+        film2.setDuration(169);
 
-        assertThrows(ValidationException.class, () -> filmController.create(film));
-        verify(filmService, times(1)).create(film);
+        filmController.create(film1);
+        filmController.create(film2);
+
+        Collection<Film> films = filmController.getAll();
+        assertEquals(2, films.size());
+        assertTrue(films.contains(film1));
+        assertTrue(films.contains(film2));
     }
 }

@@ -1,79 +1,61 @@
-package ru.yandex.practicum.filmorate.controller;
+package ru.yandex.practicum.filmorate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.time.LocalDate;
-import java.util.Collections;
+import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class UserControllerTest {
 
-    @Mock
-    private UserService userService;
-
-    @InjectMocks
     private UserController userController;
+    private UserService userService;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        userService = new UserService();
+        userController = new UserController(userService);
     }
 
     @Test
-    void shouldReturnAllUsers() {
-        when(userService.findAll()).thenReturn(Collections.emptyList());
-
-        assertNotNull(userController.findAll());
-        verify(userService, times(1)).findAll();
-    }
-
-    @Test
-    void shouldCreateUser_whenValidUser() {
+    void addUser_shouldAddUser() {
         User user = new User();
-        user.setEmail("user@mail.com");
-        user.setLogin("login");
-        user.setName("User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
+        user.setLogin("john_doe");
+        user.setEmail("john@mail.com");
+        user.setName("John Doe");
+        user.setBirthday(LocalDate.parse("1990-01-01"));
 
-        when(userService.create(user)).thenReturn(user);
+        userController.create(user);
 
-        User created = userController.create(user);
-
-        assertEquals("user@mail.com", created.getEmail());
-        verify(userService, times(1)).create(user);
+        Collection<User> users = userController.getAll();
+        assertTrue(users.contains(user));
     }
 
     @Test
-    void shouldThrowException_whenInvalidUser() {
-        User user = new User();
-        user.setEmail("");
-        user.setLogin("login");
+    void getAllUsers_shouldReturnAllUsers() {
+        User user1 = new User();
+        user1.setLogin("alice");
+        user1.setEmail("alice@mail.com");
+        user1.setName("Alice");
+        user1.setBirthday(LocalDate.parse("1985-05-05"));
 
-        when(userService.create(user)).thenThrow(ValidationException.class);
+        User user2 = new User();
+        user2.setLogin("bob");
+        user2.setEmail("bob@mail.com");
+        user2.setName("Bob");
+        user2.setBirthday(LocalDate.parse("1980-12-12"));
 
-        assertThrows(ValidationException.class, () -> userController.create(user));
-        verify(userService, times(1)).create(user);
-    }
+        userController.create(user1);
+        userController.create(user2);
 
-    @Test
-    void shouldThrowException_whenEmailAlreadyExists() {
-        User user = new User();
-        user.setEmail("user@mail.com");
-        user.setLogin("login2");
-
-        when(userService.create(user)).thenThrow(DuplicatedDataException.class);
-
-        assertThrows(DuplicatedDataException.class, () -> userController.create(user));
-        verify(userService, times(1)).create(user);
+        Collection<User> users = userController.getAll();
+        assertEquals(2, users.size());
+        assertTrue(users.contains(user1));
+        assertTrue(users.contains(user2));
     }
 }

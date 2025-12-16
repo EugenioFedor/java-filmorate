@@ -1,36 +1,33 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 
 @RestController
 @RequestMapping("/users")
-@RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    private final UserService service;
 
-    @GetMapping
-    public Collection<User> findAll() {
-        return userService.findAll();
-    }
-
-    @GetMapping("/{id}")
-    public User findById(@PathVariable Long id) {
-        return userService.findById(id);
+    public UserController(UserService service) {
+        this.service = service;
     }
 
     @PostMapping
     public User create(@RequestBody User user) {
-        return userService.create(user);
+        return service.create(user);
     }
 
     @PutMapping
     public User update(@RequestBody User user) {
-        return userService.update(user);
+        return service.update(user);
+    }
+
+    @GetMapping
+    public Collection<User> getAll() {
+        return service.getAll();
     }
 }

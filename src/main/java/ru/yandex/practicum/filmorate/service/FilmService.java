@@ -1,65 +1,51 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @Service
-@RequiredArgsConstructor
 public class FilmService {
 
     private final Map<Long, Film> films = new HashMap<>();
-    private long nextId = 1L;
-
-    public Collection<Film> findAll() {
-        return films.values();
-    }
-
-    public Film findById(Long id) {
-        validateId(id);
-        Film film = films.get(id);
-        if (film == null) throw new NoSuchElementException("Фильм с id=" + id + " не найден");
-        return film;
-    }
+    private long nextId = 1;
 
     public Film create(Film film) {
-        validateFilm(film);
+        validate(film);
         film.setId(nextId++);
         films.put(film.getId(), film);
         return film;
     }
 
     public Film update(Film film) {
-        validateFilm(film);
-        validateId(film.getId());
-
+        validate(film);
         if (!films.containsKey(film.getId())) {
-            throw new NoSuchElementException("Фильм не найден");
+            throw new NotFoundException("Фильм не найден");
         }
-
         films.put(film.getId(), film);
         return film;
     }
 
-    private void validateFilm(Film film) {
-        if (film.getName() == null || film.getName().isBlank()) {
-            throw new IllegalArgumentException("Название фильма не может быть пустым");
-        }
-        if (film.getReleaseDate().isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Дата релиза не может быть в будущем");
-        }
-        if (film.getDuration() <= 0) {
-            throw new IllegalArgumentException("Длительность должна быть положительной");
-        }
+    public Collection<Film> getAll() {
+        return films.values();
     }
 
-    private void validateId(Long id) {
-        if (id <= 0) throw new IllegalArgumentException("Id должен быть положительным");
+    private void validate(Film film) {
+        if (film.getName() == null || film.getName().isBlank()) {
+            throw new ValidationException("Название фильма не может быть пустым");
+        }
+        if (film.getDescription() != null && film.getDescription().length() > 200) {
+            throw new ValidationException("Длина описания не может быть больше 200 символов");
+        }
+        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
+            throw new ValidationException("Дата релиза слишком ранняя");
+        }
+        if (film.getDuration() <= 0) {
+            throw new ValidationException("Длительность должна быть положительной");
+        }
     }
 }
