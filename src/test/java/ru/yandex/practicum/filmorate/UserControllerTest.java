@@ -2,21 +2,39 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.time.LocalDate;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class UserControllerTest {
 
+    @Mock
+    private UserService userService;
+
+    @InjectMocks
     private UserController userController;
 
     @BeforeEach
     void setUp() {
-        userController = new UserController(); // теперь работает без сервиса
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void shouldReturnAllUsers() {
+        when(userService.findAll()).thenReturn(Collections.emptyList());
+
+        assertNotNull(userController.findAll());
+        verify(userService, times(1)).findAll();
     }
 
     @Test
@@ -27,89 +45,35 @@ class UserControllerTest {
         user.setName("User");
         user.setBirthday(LocalDate.of(1990, 1, 1));
 
+        when(userService.create(user)).thenReturn(user);
+
         User created = userController.create(user);
 
-        assertNotNull(created.getId());
         assertEquals("user@mail.com", created.getEmail());
+        verify(userService, times(1)).create(user);
     }
 
     @Test
-    void shouldSetLoginAsName_whenNameIsBlank() {
-        User user = new User();
-        user.setEmail("user@mail.com");
-        user.setLogin("login");
-        user.setName("");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-
-        User created = userController.create(user);
-
-        assertEquals("login", created.getName());
-    }
-
-    @Test
-    void shouldThrowException_whenEmailIsBlank() {
+    void shouldThrowException_whenInvalidUser() {
         User user = new User();
         user.setEmail("");
         user.setLogin("login");
 
-        assertThrows(ValidationException.class,
-                () -> userController.create(user));
-    }
+        when(userService.create(user)).thenThrow(ValidationException.class);
 
-    @Test
-    void shouldThrowException_whenEmailWithoutAt() {
-        User user = new User();
-        user.setEmail("usermail.com");
-        user.setLogin("login");
-
-        assertThrows(ValidationException.class,
-                () -> userController.create(user));
-    }
-
-    @Test
-    void shouldThrowException_whenLoginIsBlank() {
-        User user = new User();
-        user.setEmail("user@mail.com");
-        user.setLogin("");
-
-        assertThrows(ValidationException.class,
-                () -> userController.create(user));
-    }
-
-    @Test
-    void shouldThrowException_whenLoginContainsSpaces() {
-        User user = new User();
-        user.setEmail("user@mail.com");
-        user.setLogin("bad login");
-
-        assertThrows(ValidationException.class,
-                () -> userController.create(user));
-    }
-
-    @Test
-    void shouldThrowException_whenBirthdayInFuture() {
-        User user = new User();
-        user.setEmail("user@mail.com");
-        user.setLogin("login");
-        user.setBirthday(LocalDate.now().plusDays(1));
-
-        assertThrows(ValidationException.class,
-                () -> userController.create(user));
+        assertThrows(ValidationException.class, () -> userController.create(user));
+        verify(userService, times(1)).create(user);
     }
 
     @Test
     void shouldThrowException_whenEmailAlreadyExists() {
-        User first = new User();
-        first.setEmail("user@mail.com");
-        first.setLogin("login1");
+        User user = new User();
+        user.setEmail("user@mail.com");
+        user.setLogin("login2");
 
-        userController.create(first);
+        when(userService.create(user)).thenThrow(DuplicatedDataException.class);
 
-        User second = new User();
-        second.setEmail("user@mail.com");
-        second.setLogin("login2");
-
-        assertThrows(DuplicatedDataException.class,
-                () -> userController.create(second));
+        assertThrows(DuplicatedDataException.class, () -> userController.create(user));
+        verify(userService, times(1)).create(user);
     }
 }
