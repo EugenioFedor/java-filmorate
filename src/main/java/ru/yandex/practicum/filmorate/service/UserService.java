@@ -1,11 +1,11 @@
 package ru.yandex.practicum.filmorate.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -16,15 +16,15 @@ public class UserService {
 
     private final UserStorage userStorage;
 
-    // userId -> set of friendIds
     private final Map<Long, Set<Long>> friendsByUser = new HashMap<>();
 
+    @Autowired
     public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
     public UserService() {
-        this.userStorage = new InMemoryUserStorage();
+        throw new IllegalStateException("UserService должен создаваться Spring через DI-конструктор");
     }
 
     public User create(User user) {
@@ -40,7 +40,6 @@ public class UserService {
     public User update(User user) {
         validate(user);
 
-        // 404 если пользователя нет
         getById(user.getId());
 
         if (user.getName() == null || user.getName().isBlank()) {
@@ -60,7 +59,6 @@ public class UserService {
     }
 
     public void addFriend(Long id, Long friendId) {
-        // 404 если любой из пользователей не существует
         getById(id);
         getById(friendId);
 
@@ -73,22 +71,16 @@ public class UserService {
     }
 
     public void removeFriend(Long id, Long friendId) {
-        // 404 если любой из пользователей не существует
         getById(id);
         getById(friendId);
 
         Set<Long> userFriends = friendsByUser.get(id);
         Set<Long> friendFriends = friendsByUser.get(friendId);
 
-        // если у пользователя вообще нет списка друзей — просто ок
-        if (userFriends == null) {
-            return;
+        if (userFriends == null || !userFriends.remove(friendId)) {
+            throw new NotFoundException("Пользователь " + friendId + " не является другом пользователя " + id);
         }
 
-        // пытаемся удалить; если не было — тоже просто ок
-        userFriends.remove(friendId);
-
-        // симметрично “в обратную сторону”
         if (friendFriends != null) {
             friendFriends.remove(id);
             if (friendFriends.isEmpty()) {
@@ -102,7 +94,6 @@ public class UserService {
     }
 
     public List<User> getFriends(Long id) {
-        // 404 если пользователя нет
         getById(id);
 
         Set<Long> friendIds = friendsByUser.getOrDefault(id, Collections.emptySet());
@@ -112,7 +103,6 @@ public class UserService {
     }
 
     public List<User> getCommonFriends(Long id, Long otherId) {
-        // 404 если любого пользователя нет
         getById(id);
         getById(otherId);
 

@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -19,9 +20,14 @@ public class FilmService {
 
     private final Map<Long, Set<Long>> likesByFilm = new HashMap<>();
 
+    @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+    }
+
+    public FilmService() {
+        throw new IllegalStateException("FilmService должен создаваться Spring через DI-конструктор");
     }
 
     public Film create(Film film) {
@@ -29,34 +35,13 @@ public class FilmService {
         return filmStorage.create(film);
     }
 
-    private void validateFilm(Film film) {
-        if (film.getName() == null || film.getName().isBlank()) {
-            throw new ValidationException("Название фильма не должно быть пустым");
-        }
-
-        if (film.getDescription() != null && film.getDescription().length() > 200) {
-            throw new ValidationException("Описание не должно быть больше 200 символов");
-        }
-
-        if (film.getReleaseDate() == null) {
-            throw new ValidationException("Дата релиза обязательна");
-        }
-
-        LocalDate minDate = LocalDate.of(1895, 12, 28);
-        if (film.getReleaseDate().isBefore(minDate)) {
-            throw new ValidationException("Дата релиза не может быть раньше 28.12.1895");
-        }
-
-        if (film.getDuration() <= 0) {
-            throw new ValidationException("Длительность должна быть положительной");
-        }
-    }
-
     public Film update(Film film) {
+        validateFilm(film);
+        getById(film.getId()); // 404 если фильма нет
         return filmStorage.update(film);
     }
 
-    public List<Film> getAll() {
+    public Collection<Film> getAll() {
         return filmStorage.getAll();
     }
 
@@ -69,6 +54,7 @@ public class FilmService {
         getById(filmId);
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+
         likesByFilm.computeIfAbsent(filmId, id -> new HashSet<>()).add(userId);
     }
 
@@ -76,14 +62,13 @@ public class FilmService {
         getById(filmId);
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
-        Set<Long> likes = likesByFilm.get(filmId);
-        if (likes == null) {
-            throw new NotFoundException("Лайков у фильма " + filmId + " нет");
-        }
-        boolean removed = likes.remove(userId);
-        if (!removed) {
+
+        Set<Long> likes = likesByFilm.getOrDefault(filmId, Collections.emptySet());
+        if (!likes.contains(userId)) {
             throw new NotFoundException("Лайк от пользователя " + userId + " для фильма " + filmId + " не найден");
         }
+
+        likes.remove(userId);
         if (likes.isEmpty()) {
             likesByFilm.remove(filmId);
         }
@@ -106,16 +91,24 @@ public class FilmService {
                 .collect(Collectors.toList());
     }
 
-    private void validate(Film film) {
+    private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
-            throw new ValidationException("Название фильма не может быть пустым");
+            throw new ValidationException("Название фильма не должно быть пустым");
         }
+
         if (film.getDescription() != null && film.getDescription().length() > 200) {
-            throw new ValidationException("Длина описания не может быть больше 200 символов");
+            throw new ValidationException("Описание не должно быть больше 200 символов");
         }
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
-            throw new ValidationException("Дата релиза слишком ранняя");
+
+        if (film.getReleaseDate() == null) {
+            throw new ValidationException("Дата релиза обязательна");
         }
+
+        LocalDate minDate = LocalDate.of(1895, 12, 28);
+        if (film.getReleaseDate().isBefore(minDate)) {
+            throw new ValidationException("Дата релиза не может быть раньше 28.12.1895");
+        }
+
         if (film.getDuration() <= 0) {
             throw new ValidationException("Длительность должна быть положительной");
         }
