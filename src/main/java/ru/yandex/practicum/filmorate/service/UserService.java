@@ -1,42 +1,38 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
 
     private final UserStorage userStorage;
 
-    public UserService() {
-        this.userStorage = new InMemoryUserStorage();
-    }
-
-    @Autowired
     public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
     public User create(User user) {
-        validate(user);
-        normalize(user);
+        validateUser(user);
+        normalizeUser(user);
         return userStorage.create(user);
     }
 
     public User update(User user) {
-        validate(user);
-        normalize(user);
-        userStorage.getById(user.getId())
-                .orElseThrow(() -> new NotFoundException("Пользователь с id " + user.getId() + " не найден"));
+        validateUser(user);
+        normalizeUser(user);
 
+        Long id = user.getId();
+        if (id == null || userStorage.getById(id).isEmpty()) {
+            throw new NotFoundException("Пользователь с id " + id + " не найден");
+        }
         return userStorage.update(user);
     }
 
@@ -53,8 +49,12 @@ public class UserService {
         User user = getById(userId);
         User friend = getById(friendId);
 
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+        if (!user.getFriends().contains(friendId)) {
+            user.getFriends().add(friendId);
+        }
+        if (!friend.getFriends().contains(userId)) {
+            friend.getFriends().add(userId);
+        }
 
         userStorage.update(user);
         userStorage.update(friend);
@@ -63,6 +63,8 @@ public class UserService {
     public void removeFriend(Long userId, Long friendId) {
         User user = getById(userId);
         User friend = getById(friendId);
+
+        // важно для теста "Not friend remove": операция должна быть идемпотентной
         user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
 
@@ -72,31 +74,41 @@ public class UserService {
 
     public List<User> getFriends(Long userId) {
         User user = getById(userId);
-        return user.getFriends().stream().map(this::getById).toList();
+        return user.getFriends().stream()
+                .map(this::getById)
+                .collect(Collectors.toList());
     }
 
     public List<User> getCommonFriends(Long userId, Long otherId) {
-        User u1 = getById(userId);
-        User u2 = getById(otherId);
+        User user = getById(userId);
+        User other = getById(otherId);
 
-        return u1.getFriends().stream()
-                .filter(u2.getFriends()::contains)
+        Set<Long> u = new HashSet<>(user.getFriends());
+        u.retainAll(other.getFriends());
+
+        return u.stream()
                 .map(this::getById)
-                .toList();
+                .collect(Collectors.toList());
     }
 
-    private void normalize(User user) {
+    private void normalizeUser(User user) {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
+        if (user.getFriends() == null) {
+            user.setFriends(new HashSet<>());
+        }
     }
 
-    private void validate(User user) {
-        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-            throw new ValidationException("Некорректный email");
+    private void validateUser(User user) {
+        if (user == null) {
+            throw new ValidationException("Пользователь не должен быть null");
         }
         if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не может быть пустым или содержать пробелы");
+            throw new ValidationException("Логин не должен быть пустым и не должен содержать пробелы");
+        }
+        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
+            throw new ValidationException("Email должен содержать символ @");
         }
         if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем");
