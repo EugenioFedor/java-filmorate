@@ -76,21 +76,19 @@ public class UserService {
         getById(friendId);
 
         Set<Long> userFriends = friendsByUser.get(id);
-        Set<Long> friendFriends = friendsByUser.get(friendId);
-
-        if (userFriends == null || !userFriends.remove(friendId)) {
-            throw new NotFoundException("Пользователь " + friendId + " не является другом пользователя " + id);
+        if (userFriends != null) {
+            userFriends.remove(friendId);
+            if (userFriends.isEmpty()) {
+                friendsByUser.remove(id);
+            }
         }
 
+        Set<Long> friendFriends = friendsByUser.get(friendId);
         if (friendFriends != null) {
             friendFriends.remove(id);
             if (friendFriends.isEmpty()) {
                 friendsByUser.remove(friendId);
             }
-        }
-
-        if (userFriends.isEmpty()) {
-            friendsByUser.remove(id);
         }
     }
 
