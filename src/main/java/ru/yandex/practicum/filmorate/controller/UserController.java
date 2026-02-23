@@ -1,8 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 import java.util.List;

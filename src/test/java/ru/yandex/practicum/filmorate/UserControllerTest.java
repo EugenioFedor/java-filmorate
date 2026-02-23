@@ -9,7 +9,8 @@ import ru.yandex.practicum.filmorate.service.UserService;
 import java.time.LocalDate;
 import java.util.Collection;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UserControllerTest {
 
