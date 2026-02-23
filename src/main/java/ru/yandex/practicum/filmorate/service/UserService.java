@@ -1,15 +1,12 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -17,40 +14,20 @@ public class UserService {
 
     private final UserStorage userStorage;
 
-    private final Map<Long, Set<Long>> friendsByUser = new HashMap<>();
-
-    @Autowired
     public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
-    public UserService() {
-        this.userStorage = new InMemoryUserStorage();
-    }
-
     public User create(User user) {
-        validate(user);
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
 
         return userStorage.create(user);
     }
 
     public User update(User user) {
-        validate(user);
-
-        getById(user.getId());
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-
         return userStorage.update(user);
     }
 
-    public Collection<User> getAll() {
+    public List<User> getAll() {
         return userStorage.getAll();
     }
 
@@ -60,69 +37,45 @@ public class UserService {
     }
 
     public void addFriend(Long id, Long friendId) {
-        getById(id);
-        getById(friendId);
+        User user = getById(id);
+        User friend = getById(friendId);
 
-        if (Objects.equals(id, friendId)) {
-            throw new ValidationException("Нельзя добавить себя в друзья");
-        }
-
-        friendsByUser.computeIfAbsent(id, k -> new HashSet<>()).add(friendId);
-        friendsByUser.computeIfAbsent(friendId, k -> new HashSet<>()).add(id);
+        user.getFriends().add(friendId);
+        friend.getFriends().add(id);
+        userStorage.update(user);
+        userStorage.update(friend);
     }
 
     public void removeFriend(Long id, Long friendId) {
-        getById(id);
-        getById(friendId);
+        User user = getById(id);          // если нет — 404
+        User friend = getById(friendId);  // если нет — 404
 
-        Set<Long> userFriends = friendsByUser.get(id);
-        if (userFriends != null) {
-            userFriends.remove(friendId);
-            if (userFriends.isEmpty()) {
-                friendsByUser.remove(id);
-            }
+        Set<Long> userFriends = user.getFriends();
+        if (!userFriends.contains(friendId)) {
+            throw new NotFoundException("Пользователь " + friendId + " не является другом пользователя " + id);
         }
 
-        Set<Long> friendFriends = friendsByUser.get(friendId);
-        if (friendFriends != null) {
-            friendFriends.remove(id);
-            if (friendFriends.isEmpty()) {
-                friendsByUser.remove(friendId);
-            }
-        }
+        userFriends.remove(friendId);
+        friend.getFriends().remove(id);
+
+        userStorage.update(user);
+        userStorage.update(friend);
     }
 
     public List<User> getFriends(Long id) {
-        getById(id);
-
-        Set<Long> friendIds = friendsByUser.getOrDefault(id, Collections.emptySet());
-        return friendIds.stream()
+        User user = getById(id);
+        return user.getFriends().stream()
                 .map(this::getById)
                 .collect(Collectors.toList());
     }
 
     public List<User> getCommonFriends(Long id, Long otherId) {
-        getById(id);
-        getById(otherId);
+        User u1 = getById(id);
+        User u2 = getById(otherId);
 
-        Set<Long> first = friendsByUser.getOrDefault(id, Collections.emptySet());
-        Set<Long> second = friendsByUser.getOrDefault(otherId, Collections.emptySet());
-
-        return first.stream()
-                .filter(second::contains)
+        return u1.getFriends().stream()
+                .filter(u2.getFriends()::contains)
                 .map(this::getById)
                 .collect(Collectors.toList());
-    }
-
-    private void validate(User user) {
-        if (user.getEmail() == null || !user.getEmail().contains("@")) {
-            throw new ValidationException("Некорректный email");
-        }
-        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не может быть пустым или содержать пробелы");
-        }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            throw new ValidationException("Дата рождения не может быть в будущем");
-        }
     }
 }
