@@ -1,47 +1,130 @@
 package ru.yandex.practicum.filmorate.service;
 
-import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.model.User;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
 
-    private final Map<Long, User> users = new HashMap<>();
-    private long nextId = 1;
+    private final UserStorage userStorage;
+
+    // userId -> set of friendIds
+    private final Map<Long, Set<Long>> friendsByUser = new HashMap<>();
+
+    public UserService(UserStorage userStorage) {
+        this.userStorage = userStorage;
+    }
 
     public User create(User user) {
         validate(user);
-        user.setId(nextId++);
+
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
-        users.put(user.getId(), user);
-        return user;
+
+        return userStorage.create(user);
     }
 
     public User update(User user) {
         validate(user);
-        if (!users.containsKey(user.getId())) {
-            throw new NotFoundException("Пользователь не найден");
+
+        // 404 если пользователя нет
+        getById(user.getId());
+
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
         }
-        users.put(user.getId(), user);
-        return user;
+
+        return userStorage.update(user);
     }
 
     public Collection<User> getAll() {
-        return users.values();
+        return userStorage.getAll();
+    }
+
+    public User getById(Long id) {
+        return userStorage.getById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
+    }
+
+    public void addFriend(Long id, Long friendId) {
+        // 404 если любой из пользователей не существует
+        getById(id);
+        getById(friendId);
+
+        if (Objects.equals(id, friendId)) {
+            throw new ValidationException("Нельзя добавить себя в друзья");
+        }
+
+        friendsByUser.computeIfAbsent(id, k -> new HashSet<>()).add(friendId);
+        friendsByUser.computeIfAbsent(friendId, k -> new HashSet<>()).add(id);
+    }
+
+    public void removeFriend(Long id, Long friendId) {
+        // 404 если любой из пользователей не существует
+        getById(id);
+        getById(friendId);
+
+        Set<Long> userFriends = friendsByUser.get(id);
+        Set<Long> friendFriends = friendsByUser.get(friendId);
+
+        // если у пользователя вообще нет списка друзей — просто ок
+        if (userFriends == null) {
+            return;
+        }
+
+        // пытаемся удалить; если не было — тоже просто ок
+        userFriends.remove(friendId);
+
+        // симметрично “в обратную сторону”
+        if (friendFriends != null) {
+            friendFriends.remove(id);
+            if (friendFriends.isEmpty()) {
+                friendsByUser.remove(friendId);
+            }
+        }
+
+        if (userFriends.isEmpty()) {
+            friendsByUser.remove(id);
+        }
+    }
+
+    public List<User> getFriends(Long id) {
+        // 404 если пользователя нет
+        getById(id);
+
+        Set<Long> friendIds = friendsByUser.getOrDefault(id, Collections.emptySet());
+        return friendIds.stream()
+                .map(this::getById)
+                .collect(Collectors.toList());
+    }
+
+    public List<User> getCommonFriends(Long id, Long otherId) {
+        // 404 если любого пользователя нет
+        getById(id);
+        getById(otherId);
+
+        Set<Long> first = friendsByUser.getOrDefault(id, Collections.emptySet());
+        Set<Long> second = friendsByUser.getOrDefault(otherId, Collections.emptySet());
+
+        return first.stream()
+                .filter(second::contains)
+                .map(this::getById)
+                .collect(Collectors.toList());
     }
 
     private void validate(User user) {
         if (user.getEmail() == null || !user.getEmail().contains("@")) {
             throw new ValidationException("Некорректный email");
         }
-        if (user.getLogin() == null || user.getLogin().contains(" ")) {
+        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
             throw new ValidationException("Логин не может быть пустым или содержать пробелы");
         }
         if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
