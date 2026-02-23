@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
@@ -14,12 +15,15 @@ public class UserService {
 
     private final UserStorage userStorage;
 
+    public UserService() {
+        this.userStorage = new InMemoryUserStorage();
+    }
+
     public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
     public User create(User user) {
-
         return userStorage.create(user);
     }
 
@@ -42,13 +46,14 @@ public class UserService {
 
         user.getFriends().add(friendId);
         friend.getFriends().add(id);
+
         userStorage.update(user);
         userStorage.update(friend);
     }
 
     public void removeFriend(Long id, Long friendId) {
-        User user = getById(id);          // если нет — 404
-        User friend = getById(friendId);  // если нет — 404
+        User user = getById(id);
+        User friend = getById(friendId);
 
         Set<Long> userFriends = user.getFriends();
         if (!userFriends.contains(friendId)) {
