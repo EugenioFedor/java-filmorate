@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
@@ -24,7 +25,7 @@ public class UserService {
     }
 
     public UserService() {
-        throw new IllegalStateException("UserService должен создаваться Spring через DI-конструктор");
+        this.userStorage = new InMemoryUserStorage();
     }
 
     public User create(User user) {
