@@ -19,7 +19,6 @@ public class FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
 
-    // filmId -> set(userId)
     private final Map<Long, Set<Long>> likesByFilm = new HashMap<>();
 
     public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
@@ -51,7 +50,6 @@ public class FilmService {
     }
 
     public void addLike(Long filmId, Long userId) {
-        // важно: проверяем, что пользователь существует в ТОМ ЖЕ хранилище (через DI)
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
         filmStorage.getById(filmId)

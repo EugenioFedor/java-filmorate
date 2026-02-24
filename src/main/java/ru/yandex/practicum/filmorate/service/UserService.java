@@ -7,7 +7,9 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,12 +51,8 @@ public class UserService {
         User user = getById(userId);
         User friend = getById(friendId);
 
-        if (!user.getFriends().contains(friendId)) {
-            user.getFriends().add(friendId);
-        }
-        if (!friend.getFriends().contains(userId)) {
-            friend.getFriends().add(userId);
-        }
+        user.getFriends().add(friendId);
+        friend.getFriends().add(userId);
 
         userStorage.update(user);
         userStorage.update(friend);
@@ -64,7 +62,6 @@ public class UserService {
         User user = getById(userId);
         User friend = getById(friendId);
 
-        // важно для теста "Not friend remove": операция должна быть идемпотентной
         user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
 
