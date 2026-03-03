@@ -5,7 +5,7 @@ Template repository for Filmorate project.
 
 Схема базы данных расположена в файле:
 
-![Схема БД](C:/Users/79991/Desktop/Учеба/java-filmorate/docs/ER_scheme_filmorate.png)
+![Схема БД](docs/ER_scheme_filmorate.png)
 
 ### Описание структуры
 
