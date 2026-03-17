@@ -23,8 +23,16 @@ public class UserService {
 
     public User create(User user) {
 
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
+        if (user.getEmail() == null || !user.getEmail().contains("@")) {
+            throw new ValidationException("Invalid email");
+        }
+
+        if (user.getLogin() == null || user.getLogin().contains(" ")) {
+            throw new ValidationException("Invalid login");
+        }
+
+        if (user.getBirthday() == null) {
+            throw new ValidationException("Birthday cannot be null");
         }
 
         if (user.getBirthday().isAfter(LocalDate.now())) {

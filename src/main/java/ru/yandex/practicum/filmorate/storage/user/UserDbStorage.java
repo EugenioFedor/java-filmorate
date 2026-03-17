@@ -58,7 +58,7 @@ public class UserDbStorage implements UserStorage {
                 user.getEmail(),
                 user.getLogin(),
                 user.getName(),
-                user.getBirthday(),
+                Date.valueOf(user.getBirthday()),
                 user.getId());
 
         if (rowsUpdated == 0) {
