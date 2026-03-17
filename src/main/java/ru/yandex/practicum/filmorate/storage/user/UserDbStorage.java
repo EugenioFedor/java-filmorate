@@ -4,8 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -30,30 +28,33 @@ public class UserDbStorage implements UserStorage {
     public User create(User user) {
 
         String sql = """
-                    INSERT INTO users (email, login, name, birthday)
-                    VALUES (?, ?, ?, ?)
+                INSERT INTO users (email, login, name, birthday)
+                VALUES (?, ?, ?, ?)
                 """;
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
+            PreparedStatement ps = connection.prepareStatement(sql);
+
             ps.setString(1, user.getEmail());
             ps.setString(2, user.getLogin());
             ps.setString(3, user.getName());
+
             if (user.getBirthday() != null) {
                 ps.setDate(4, Date.valueOf(user.getBirthday()));
             } else {
                 ps.setNull(4, java.sql.Types.DATE);
             }
-            return ps;
-        }, keyHolder);
 
-        Number key = keyHolder.getKey();
-        if (key == null) {
-            throw new RuntimeException("ID не сгенерирован");
-        }
-        user.setId(key.longValue());
+            return ps;
+        });
+
+        // 🔥 вместо KeyHolder
+        Long id = jdbcTemplate.queryForObject(
+                "SELECT MAX(id) FROM users",
+                Long.class
+        );
+
+        user.setId(id);
 
         return user;
     }
