@@ -49,7 +49,11 @@ public class UserDbStorage implements UserStorage {
             return ps;
         }, keyHolder);
 
-        user.setId(keyHolder.getKey().longValue());
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new RuntimeException("ID не сгенерирован");
+        }
+        user.setId(key.longValue());
 
         return user;
     }
@@ -58,12 +62,24 @@ public class UserDbStorage implements UserStorage {
     public User update(User user) {
         String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE id = ?";
 
-        int rowsUpdated = jdbcTemplate.update(sql,
-                user.getEmail(),
-                user.getLogin(),
-                user.getName(),
-                Date.valueOf(user.getBirthday()),
-                user.getId());
+        int rowsUpdated = jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql);
+
+            ps.setString(1, user.getEmail());
+            ps.setString(2, user.getLogin());
+            ps.setString(3, user.getName());
+
+            // 🔥 ОБРАБОТКА NULL (ключевой фикс)
+            if (user.getBirthday() != null) {
+                ps.setDate(4, Date.valueOf(user.getBirthday()));
+            } else {
+                ps.setNull(4, java.sql.Types.DATE);
+            }
+
+            ps.setLong(5, user.getId());
+
+            return ps;
+        });
 
         if (rowsUpdated == 0) {
             throw new NotFoundException("Пользователь с id " + user.getId() + " не найден");
