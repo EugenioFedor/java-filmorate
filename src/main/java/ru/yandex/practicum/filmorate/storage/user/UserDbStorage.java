@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
@@ -26,6 +27,14 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User create(User user) {
+
+        if (user.getLogin() == null || user.getLogin().isBlank()) {
+            throw new ValidationException("Login cannot be empty");
+        }
+
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new ValidationException("Email cannot be empty");
+        }
 
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
