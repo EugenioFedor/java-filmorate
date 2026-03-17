@@ -90,8 +90,8 @@ public class UserService {
 
         return friends1.stream()
                 .filter(friends2::contains)
-                .map(userStorage::getById)
-                .map(Optional::get)
+                .map(friendId -> userStorage.getById(friendId)
+                        .orElseThrow(() -> new NotFoundException("User not found")))
                 .collect(Collectors.toList());
     }
 
