@@ -27,11 +27,11 @@ public class UserService {
             throw new ValidationException("Invalid email");
         }
 
-        if (user.getLogin() == null || user.getLogin().contains(" ")) {
-            throw new ValidationException("Invalid login");
+        if (user.getLogin() == null || user.getLogin().isBlank()) {
+            throw new ValidationException("Login cannot be empty");
         }
 
-        if (user.getBirthday().isAfter(LocalDate.now())) {
+        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
 
