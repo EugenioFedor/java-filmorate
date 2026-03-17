@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS genres (
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) NOT NULL,
-    login VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    login VARCHAR(255),
     name VARCHAR(255),
     birthday DATE
 );
