@@ -52,8 +52,8 @@ public class UserDbStorage implements UserStorage {
         }
 
         String sql = """
-                INSERT INTO users (email, login, name, birthday)
-                VALUES (?, ?, ?, ?)
+                    INSERT INTO users (email, login, name, birthday)
+                    VALUES (?, ?, ?, ?)
                 """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
