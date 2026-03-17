@@ -41,7 +41,11 @@ public class UserDbStorage implements UserStorage {
             ps.setString(1, user.getEmail());
             ps.setString(2, user.getLogin());
             ps.setString(3, user.getName());
-            ps.setDate(4, Date.valueOf(user.getBirthday()));
+            if (user.getBirthday() != null) {
+                ps.setDate(4, Date.valueOf(user.getBirthday()));
+            } else {
+                ps.setNull(4, java.sql.Types.DATE);
+            }
             return ps;
         }, keyHolder);
 
@@ -130,7 +134,13 @@ public class UserDbStorage implements UserStorage {
         user.setEmail(rs.getString("email"));
         user.setLogin(rs.getString("login"));
         user.setName(rs.getString("name"));
-        user.setBirthday(rs.getDate("birthday").toLocalDate());
+
+        Date date = rs.getDate("birthday");
+        if (date != null) {
+            user.setBirthday(date.toLocalDate());
+        } else {
+            user.setBirthday(null);
+        }
 
         return user;
     }
