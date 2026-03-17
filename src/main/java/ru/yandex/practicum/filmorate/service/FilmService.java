@@ -58,33 +58,19 @@ public class FilmService {
     }
 
     public void addLike(Long filmId, Long userId) {
-
-        Film film = getById(filmId);
-
+        getById(filmId);
         userService.getById(userId);
-
-        film.getLikes().add(userId);
+        filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(Long filmId, Long userId) {
-
-        Film film = getById(filmId);
-
+        getById(filmId);
         userService.getById(userId);
-
-        film.getLikes().remove(userId);
+        filmStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getPopular(int count) {
-
-        return filmStorage.getAll().stream()
-                .sorted(
-                        Comparator.comparingInt((Film f) -> f.getLikes().size())
-                                .reversed()
-                                .thenComparing(Film::getId)
-                )
-                .limit(count)
-                .toList();
+        return filmStorage.getPopular(count);
     }
 
     private void validateFilm(Film film) {

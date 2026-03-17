@@ -56,4 +56,9 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .limit(count)
                 .toList();
     }
+
+    @Override
+    public Collection<Film> findAll() {
+        return films.values();
+    }
 }

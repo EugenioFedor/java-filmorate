@@ -16,4 +16,4 @@ VALUES
 (6, 'Боевик');
 
 MERGE INTO users (id, email, login, name, birthday) KEY(id)
-VALUES (1, 'test@mail.com', 'testlogin', 'Test User', '1990-01-01');
+VALUES (1, 'test@test.com', 'testlogin', 'Test User', '2000-01-01');

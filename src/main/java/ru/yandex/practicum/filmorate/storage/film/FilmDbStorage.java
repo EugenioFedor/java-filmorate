@@ -136,11 +136,14 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getPopular(int count) {
         String sql = """
-                SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
+                SELECT f.*
                 FROM films f
-                LEFT JOIN likes l ON f.id = l.film_id
-                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
-                ORDER BY COUNT(l.user_id) DESC, f.id ASC
+                LEFT JOIN (
+                    SELECT film_id, COUNT(user_id) AS likes_count
+                    FROM likes
+                    GROUP BY film_id
+                ) l ON f.id = l.film_id
+                ORDER BY COALESCE(l.likes_count, 0) DESC, f.id ASC
                 LIMIT ?
                 """;
 
@@ -269,5 +272,11 @@ public class FilmDbStorage implements FilmStorage {
         );
 
         return count != null && count > 0;
+    }
+
+    @Override
+    public Collection<Film> findAll() {
+        String sql = "SELECT * FROM films ORDER BY id ASC";
+        return jdbcTemplate.query(sql, this::mapRowToFilm);
     }
 }
