@@ -4,9 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
@@ -28,14 +29,6 @@ public class UserDbStorage implements UserStorage {
     @Override
     public User create(User user) {
 
-        if (user.getLogin() == null || user.getLogin().isBlank()) {
-            throw new ValidationException("Login cannot be empty");
-        }
-
-        if (user.getEmail() == null || user.getEmail().isBlank()) {
-            throw new ValidationException("Email cannot be empty");
-        }
-
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
@@ -45,8 +38,10 @@ public class UserDbStorage implements UserStorage {
                 VALUES (?, ?, ?, ?)
                 """;
 
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql);
+            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
 
             ps.setString(1, user.getEmail());
             ps.setString(2, user.getLogin());
@@ -59,15 +54,15 @@ public class UserDbStorage implements UserStorage {
             }
 
             return ps;
-        });
+        }, keyHolder);
 
-        // 🔥 вместо KeyHolder
-        Long id = jdbcTemplate.queryForObject(
-                "SELECT MAX(id) FROM users",
-                Long.class
-        );
+        Number key = keyHolder.getKey();
 
-        user.setId(id);
+        if (key == null) {
+            throw new RuntimeException("ID не сгенерирован");
+        }
+
+        user.setId(key.longValue());
 
         return user;
     }
