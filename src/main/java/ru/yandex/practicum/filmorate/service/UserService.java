@@ -31,10 +31,6 @@ public class UserService {
             throw new ValidationException("Invalid login");
         }
 
-        if (user.getBirthday() == null) {
-            throw new ValidationException("Birthday cannot be null");
-        }
-
         if (user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
