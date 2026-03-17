@@ -8,14 +8,12 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.*;
 
 
@@ -30,26 +28,6 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User create(User user) {
-
-        if (user.getEmail() == null || !user.getEmail().contains("@")) {
-            throw new ValidationException("Invalid email");
-        }
-
-        if (user.getLogin() == null || user.getLogin().contains(" ")) {
-            throw new ValidationException("Invalid login");
-        }
-
-        if (user.getBirthday() == null) {
-            throw new ValidationException("Birthday cannot be null");
-        }
-
-        if (user.getBirthday().isAfter(LocalDate.now())) {
-            throw new ValidationException("Дата рождения не может быть в будущем");
-        }
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
 
         String sql = """
                     INSERT INTO users (email, login, name, birthday)
