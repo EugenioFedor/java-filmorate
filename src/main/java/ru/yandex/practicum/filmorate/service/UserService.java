@@ -31,6 +31,10 @@ public class UserService {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
 
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
+
         return userStorage.create(user);
     }
 
