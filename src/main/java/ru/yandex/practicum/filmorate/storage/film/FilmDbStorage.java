@@ -1,8 +1,8 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
@@ -224,11 +224,11 @@ public class FilmDbStorage implements FilmStorage {
 
         List<Genre> genres = jdbcTemplate.query(
                 """
-                SELECT g.id, g.name
-                FROM film_genres fg
-                JOIN genres g ON fg.genre_id = g.id
-                WHERE fg.film_id = :filmId
-                """,
+                        SELECT g.id, g.name
+                        FROM film_genres fg
+                        JOIN genres g ON fg.genre_id = g.id
+                        WHERE fg.film_id = :filmId
+                        """,
                 Map.of("filmId", filmId),
                 this::mapRowToGenre
         );
