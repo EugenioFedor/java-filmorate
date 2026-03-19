@@ -26,9 +26,13 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User update(User user) {
-        if (!users.containsKey(user.getId())) {
+        User existing = users.get(user.getId());
+
+        if (existing == null) {
             throw new NotFoundException("User not found");
         }
+
+        user.setFriends(existing.getFriends());
 
         users.put(user.getId(), user);
         return user;
@@ -46,10 +50,18 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public void addFriend(Long userId, Long friendId) {
+        User user = getById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        user.getFriends().add(friendId);
     }
 
     @Override
     public void removeFriend(Long userId, Long friendId) {
+        User user = getById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        user.getFriends().remove(friendId);
     }
 
     @Override
@@ -64,10 +76,9 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public Set<Long> getFriendsIds(Long id) {
-
         User user = getById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        return user.getFriends();
+        return new HashSet<>(user.getFriends());
     }
 }
