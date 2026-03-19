@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -30,11 +29,11 @@ public class UserDbStorage implements UserStorage {
     public User create(User user) {
 
         String sql = """
-            INSERT INTO users (email, login, name, birthday)
-            VALUES (?, ?, ?, ?)
-            """;
+                INSERT INTO users (email, login, name, birthday)
+                VALUES (?, ?, ?, ?)
+                """;
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
@@ -57,8 +56,6 @@ public class UserDbStorage implements UserStorage {
         if (key != null) {
             user.setId(key.longValue());
         }
-
-        user.setId(key.longValue());
 
         return user;
     }
