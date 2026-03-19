@@ -23,11 +23,11 @@ public class UserService {
     public User create(User user) {
 
         if (user.getEmail() == null || !user.getEmail().contains("@")) {
-            throw new ValidationException("Email должен содержать символ @");
+            throw new ValidationException("Invalid email");
         }
 
-        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не может быть пустым и содержать пробелы");
+        if (user.getLogin() == null || user.getLogin().isBlank()) {
+            throw new ValidationException("Login cannot be empty");
         }
 
         if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {

@@ -29,14 +29,10 @@ public class UserDbStorage implements UserStorage {
     @Override
     public User create(User user) {
 
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-
         String sql = """
-                INSERT INTO users (email, login, name, birthday)
-                VALUES (?, ?, ?, ?)
-                """;
+            INSERT INTO users (email, login, name, birthday)
+            VALUES (?, ?, ?, ?)
+            """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
