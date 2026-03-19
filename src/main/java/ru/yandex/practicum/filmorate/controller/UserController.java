@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -17,15 +16,6 @@ public class UserController {
 
     @PostMapping
     public User create(@RequestBody User user) {
-
-        if (user.getEmail() == null || !user.getEmail().contains("@")) {
-            throw new ValidationException("Invalid email");
-        }
-
-        if (user.getLogin() == null || user.getLogin().contains(" ")) {
-            throw new ValidationException("Invalid login");
-        }
-
         return userService.create(user);
     }
 
