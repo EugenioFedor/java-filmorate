@@ -54,8 +54,8 @@ public class UserDbStorage implements UserStorage {
 
         Number key = keyHolder.getKey();
 
-        if (key == null) {
-            throw new RuntimeException("ID не сгенерирован");
+        if (key != null) {
+            user.setId(key.longValue());
         }
 
         user.setId(key.longValue());
