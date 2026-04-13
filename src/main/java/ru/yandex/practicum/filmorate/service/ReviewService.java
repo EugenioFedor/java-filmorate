@@ -25,6 +25,7 @@ public class ReviewService {
         filmService.getById(review.getFilmId());
 
         review.setCreatedAt(LocalDateTime.now());
+        review.setUseful(0);
         Review processedReview = reviewStorage.addReview(review);
         log.info("Добавлен новый отзыв: {}", processedReview);
 

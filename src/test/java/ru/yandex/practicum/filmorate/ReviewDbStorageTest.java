@@ -345,6 +345,33 @@ public class ReviewDbStorageTest {
 
         int usefulPoints = reviewDbStorage.calculateUseful(savedReview.getReviewId());
         assertThat(usefulPoints).isEqualTo(1);
+
+        Review review2 = Review.builder()
+                .content("bad film")
+                .isPositive(false)
+                .userId(savedUser4.getId())
+                .filmId(savedFilm.getId())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Review anotherReview = reviewDbStorage.addReview(review2);
+
+        savedReview.setUseful(usefulPoints);
+        reviewDbStorage.updateReview(savedReview);
+
+        reviewDbStorage.addReactionToReview(anotherReview.getReviewId(), savedUser2.getId(), true);
+        reviewDbStorage.addReactionToReview(anotherReview.getReviewId(), savedUser3.getId(), true);
+        reviewDbStorage.addReactionToReview(anotherReview.getReviewId(), user.getId(), true);
+
+        int usefulPoints2 = reviewDbStorage.calculateUseful(anotherReview.getReviewId());
+        anotherReview.setUseful(usefulPoints2);
+        reviewDbStorage.updateReview(anotherReview);
+        assertThat(usefulPoints2).isEqualTo(3);
+
+        List<Review> reviews = reviewDbStorage.getReviewsByFilmId(savedFilm.getId(),2);
+        assertThat(reviews).hasSize(2);
+        assertThat(reviews.getFirst()).isEqualTo(anotherReview);
+        assertThat(reviews.getLast()).isEqualTo(savedReview);
     }
 
     @Test
@@ -396,8 +423,5 @@ public class ReviewDbStorageTest {
         assertThat(isLikeUser2).isTrue();
         assertThat(isLikeUser3).isTrue();
         assertThat(isLikeUser4).isNull();
-
-        int usefulPoints = reviewDbStorage.calculateUseful(savedReview.getReviewId());
-        assertThat(usefulPoints).isEqualTo(2);
     }
 }

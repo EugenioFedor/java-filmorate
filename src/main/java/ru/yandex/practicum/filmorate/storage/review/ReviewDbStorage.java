@@ -74,13 +74,14 @@ public class ReviewDbStorage {
         String sql = """
                 SELECT * FROM reviews
                 WHERE film_id=?
+                ORDER BY useful DESC, id ASC
                 LIMIT ?
                 """;
         return findMany(sql, filmId, count);
     }
 
     public List<Review> getReviews() {
-        String sql = "SELECT * FROM reviews";
+        String sql = "SELECT * FROM reviews ORDER BY useful DESC, id ASC";
         return findMany(sql);
     }
 
