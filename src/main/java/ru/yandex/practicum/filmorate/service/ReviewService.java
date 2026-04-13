@@ -87,6 +87,7 @@ public class ReviewService {
         reviewStorage.addReactionToReview(reviewId, userId, true);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
+        reviewStorage.updateReview(review);
         log.info("Поставлен лайк на отзыв: {}", review);
     }
 
@@ -108,6 +109,7 @@ public class ReviewService {
         reviewStorage.addReactionToReview(reviewId, userId, false);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
+        reviewStorage.updateReview(review);
         log.info("Поставлен дизлайк на отзыв: {}", review);
     }
 
@@ -124,6 +126,7 @@ public class ReviewService {
         reviewStorage.removeReactionFromReview(reviewId, userId);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
+        reviewStorage.updateReview(review);
         log.info("Удален лайк на отзыв: {}", review);
     }
 
@@ -140,6 +143,7 @@ public class ReviewService {
         reviewStorage.removeReactionFromReview(reviewId, userId);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
+        reviewStorage.updateReview(review);
         log.info("Удален дизлайк на отзыв: {}", review);
     }
 
