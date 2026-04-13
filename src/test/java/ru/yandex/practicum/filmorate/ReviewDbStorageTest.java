@@ -73,7 +73,7 @@ public class ReviewDbStorageTest {
 
         assertThat(reviewOptional)
                 .isPresent()
-                .hasValueSatisfying( r -> {
+                .hasValueSatisfying(r -> {
                     assertThat(r).hasFieldOrPropertyWithValue("content", "This film is sooo good.");
                     assertThat(r.isPositive()).isTrue();
                     assertThat(r.getUpdatedAt()).isNull();
@@ -109,7 +109,7 @@ public class ReviewDbStorageTest {
 
         assertThat(reviewOptional)
                 .isPresent()
-                .hasValueSatisfying( r -> {
+                .hasValueSatisfying(r -> {
                     assertThat(r.getContent()).isEqualTo("very bad film");
                     assertThat(r.isPositive()).isFalse();
                     assertThat(r.getUpdatedAt()).isNotNull();
@@ -166,7 +166,7 @@ public class ReviewDbStorageTest {
         film2.setReleaseDate(LocalDate.of(2000, 1, 1));
         film2.setDuration(150);
         film2.setMpa(rating);
-        film2.setGenres(Set.of(new Genre(6L,"Боевик")));
+        film2.setGenres(Set.of(new Genre(6L, "Боевик")));
 
         User savedUser1 = userDbStorage.create(user);
         User savedUser2 = userDbStorage.create(user2);
@@ -212,7 +212,7 @@ public class ReviewDbStorageTest {
         Review savedReview3 = reviewDbStorage.addReview(review3Film1);
         Review savedReview4 = reviewDbStorage.addReview(review4Film2);
 
-        List<Review> reviews = reviewDbStorage.getReviewsByFilmId(savedFilm1.getId(),2);
+        List<Review> reviews = reviewDbStorage.getReviewsByFilmId(savedFilm1.getId(), 2);
         assertThat(reviews).hasSize(2);
         assertThat(reviews).contains(savedReview1, savedReview2);
         assertThat(reviews).doesNotContain(savedReview3, savedReview4);
@@ -242,7 +242,7 @@ public class ReviewDbStorageTest {
         film2.setReleaseDate(LocalDate.of(2000, 1, 1));
         film2.setDuration(150);
         film2.setMpa(rating);
-        film2.setGenres(Set.of(new Genre(6L,"Боевик")));
+        film2.setGenres(Set.of(new Genre(6L, "Боевик")));
 
         User savedUser1 = userDbStorage.create(user);
         User savedUser2 = userDbStorage.create(user2);
@@ -330,13 +330,13 @@ public class ReviewDbStorageTest {
         User savedUser3 = userDbStorage.create(user3);
         User savedUser4 = userDbStorage.create(user4);
 
-        reviewDbStorage.addReactionToReview(savedReview.getReviewId(),savedUser2.getId(),true);
-        reviewDbStorage.addReactionToReview(savedReview.getReviewId(),savedUser3.getId(),true);
-        reviewDbStorage.addReactionToReview(savedReview.getReviewId(),savedUser4.getId(),false);
+        reviewDbStorage.addReactionToReview(savedReview.getReviewId(), savedUser2.getId(), true);
+        reviewDbStorage.addReactionToReview(savedReview.getReviewId(), savedUser3.getId(), true);
+        reviewDbStorage.addReactionToReview(savedReview.getReviewId(), savedUser4.getId(), false);
 
-        Boolean isLikeUser2 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(),savedUser2.getId());
-        Boolean isLikeUser3 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(),savedUser3.getId());
-        Boolean isLikeUser4 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(),savedUser4.getId());
+        Boolean isLikeUser2 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(), savedUser2.getId());
+        Boolean isLikeUser3 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(), savedUser3.getId());
+        Boolean isLikeUser4 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(), savedUser4.getId());
 
         assertThat(isLikeUser2).isTrue();
         assertThat(isLikeUser3).isTrue();
@@ -382,15 +382,15 @@ public class ReviewDbStorageTest {
         User savedUser3 = userDbStorage.create(user3);
         User savedUser4 = userDbStorage.create(user4);
 
-        reviewDbStorage.addReactionToReview(savedReview.getReviewId(),savedUser2.getId(),true);
-        reviewDbStorage.addReactionToReview(savedReview.getReviewId(),savedUser3.getId(),true);
-        reviewDbStorage.addReactionToReview(savedReview.getReviewId(),savedUser4.getId(),false);
+        reviewDbStorage.addReactionToReview(savedReview.getReviewId(), savedUser2.getId(), true);
+        reviewDbStorage.addReactionToReview(savedReview.getReviewId(), savedUser3.getId(), true);
+        reviewDbStorage.addReactionToReview(savedReview.getReviewId(), savedUser4.getId(), false);
 
-        reviewDbStorage.removeReactionFromReview(savedReview.getReviewId(),savedUser4.getId());
+        reviewDbStorage.removeReactionFromReview(savedReview.getReviewId(), savedUser4.getId());
 
-        Boolean isLikeUser2 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(),savedUser2.getId());
-        Boolean isLikeUser3 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(),savedUser3.getId());
-        Boolean isLikeUser4 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(),savedUser4.getId());
+        Boolean isLikeUser2 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(), savedUser2.getId());
+        Boolean isLikeUser3 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(), savedUser3.getId());
+        Boolean isLikeUser4 = reviewDbStorage.getReactionStatus(savedReview.getReviewId(), savedUser4.getId());
 
         assertThat(isLikeUser2).isTrue();
         assertThat(isLikeUser3).isTrue();

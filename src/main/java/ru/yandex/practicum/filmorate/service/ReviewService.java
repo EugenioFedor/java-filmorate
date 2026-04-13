@@ -66,17 +66,17 @@ public class ReviewService {
         Review review = findReviewOrThrow(reviewId);
         userService.getById(userId);
 
-        reviewStorage.addReactionToReview(reviewId,userId,true);
+        reviewStorage.addReactionToReview(reviewId, userId, true);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
         log.info("Поставлен лайк на отзыв: {}", review);
     }
 
-    public void  addDislikeToFilmReview(long reviewId, long userId) {
+    public void addDislikeToFilmReview(long reviewId, long userId) {
         Review review = findReviewOrThrow(reviewId);
         userService.getById(userId);
 
-        reviewStorage.addReactionToReview(reviewId,userId,false);
+        reviewStorage.addReactionToReview(reviewId, userId, false);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
         log.info("Поставлен дизлайк на отзыв: {}", review);
@@ -84,15 +84,15 @@ public class ReviewService {
 
     public void deleteLikeFromFilmReview(long reviewId, long userId) {
         Review review = findReviewOrThrow(reviewId);
-        Boolean currentStatus = reviewStorage.getReactionStatus(reviewId,userId);
-        checkIfStatusExists(currentStatus,reviewId,userId);
+        Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
+        checkIfStatusExists(currentStatus, reviewId, userId);
 
         if (currentStatus == false) {
             log.error("Ошибка - попытка удалить дизлайк вместо лайка.");
             throw new ValidationException("Попытка удалить дизлайк.");
         }
 
-        reviewStorage.removeReactionFromReview(reviewId,userId);
+        reviewStorage.removeReactionFromReview(reviewId, userId);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
         log.info("Удален лайк на отзыв: {}", review);
@@ -100,21 +100,21 @@ public class ReviewService {
 
     public void deleteDislikeFromFilmReview(long reviewId, long userId) {
         Review review = findReviewOrThrow(reviewId);
-        Boolean currentStatus = reviewStorage.getReactionStatus(reviewId,userId);
-        checkIfStatusExists(currentStatus,reviewId,userId);
+        Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
+        checkIfStatusExists(currentStatus, reviewId, userId);
 
         if (currentStatus == true) {
             log.error("Ошибка - попытка удалить лайк вместо дизлайка.");
             throw new ValidationException("Попытка удалить лайк вместо дизлайка.");
         }
 
-        reviewStorage.removeReactionFromReview(reviewId,userId);
+        reviewStorage.removeReactionFromReview(reviewId, userId);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
         log.info("Удален дизлайк на отзыв: {}", review);
     }
 
-    private void checkIfStatusExists(Boolean status,long reviewId, long userId) {
+    private void checkIfStatusExists(Boolean status, long reviewId, long userId) {
         if (status == null) {
             log.error("Ошибка - не найдена реакция: reviewId={}, userId={}", reviewId, userId);
             throw new NotFoundException("Реакция не найдена: reviewId=" + reviewId + ", userId=" + userId);

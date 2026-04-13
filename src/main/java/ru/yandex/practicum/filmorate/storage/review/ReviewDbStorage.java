@@ -60,9 +60,9 @@ public class ReviewDbStorage {
         return review;
     }
 
-    public void  deleteReviewById(long reviewId) {
+    public void deleteReviewById(long reviewId) {
         String sql = "DELETE FROM reviews WHERE id=?";
-        update(sql,reviewId);
+        update(sql, reviewId);
     }
 
     public Optional<Review> getReviewById(long reviewId) {
@@ -72,10 +72,10 @@ public class ReviewDbStorage {
 
     public List<Review> getReviewsByFilmId(long filmId, int count) {
         String sql = """
-        SELECT * FROM reviews
-        WHERE film_id=?
-        LIMIT ?
-        """;
+                SELECT * FROM reviews
+                WHERE film_id=?
+                LIMIT ?
+                """;
         return findMany(sql, filmId, count);
     }
 
@@ -104,12 +104,12 @@ public class ReviewDbStorage {
 
     public int calculateUseful(long reviewId) {
         String sql = """
-            SELECT
-            COUNT(CASE WHEN is_like = TRUE THEN 1 END) -
-            COUNT(CASE WHEN is_like = FALSE THEN 1 END)
-            FROM review_likes
-            WHERE review_id = ?
-            """;
+                SELECT
+                COUNT(CASE WHEN is_like = TRUE THEN 1 END) -
+                COUNT(CASE WHEN is_like = FALSE THEN 1 END)
+                FROM review_likes
+                WHERE review_id = ?
+                """;
         try {
             return jdbc.queryForObject(sql, Integer.class, reviewId);
         } catch (EmptyResultDataAccessException ignored) {
@@ -128,7 +128,6 @@ public class ReviewDbStorage {
             return null;
         }
     }
-
 
     private Optional<Review> findOne(String query, Object... args) {
         try {
