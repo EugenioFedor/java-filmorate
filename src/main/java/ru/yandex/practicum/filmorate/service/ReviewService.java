@@ -75,13 +75,8 @@ public class ReviewService {
 
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
 
-        if (currentStatus != null) {
-            String msg = currentStatus
-                    ? "Максимум 1 лайк для каждого пользователя."
-                    : "У вас уже стоит дизлайк. Нельзя ставить лайк и дизлайк одновременно.";
-
-            log.error("Ошибка при установке лайка: {}", msg);
-            throw new ValidationException(msg);
+        if (currentStatus == false) {
+            reviewStorage.removeReactionFromReview(reviewId, userId);
         }
 
         reviewStorage.addReactionToReview(reviewId, userId, true);
@@ -97,13 +92,8 @@ public class ReviewService {
 
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
 
-        if (currentStatus != null) {
-            String msg = currentStatus
-                    ? "У вас уже стоит лайк. Нельзя ставить лайк и дизлайк одновременно."
-                    : "Максимум 1 дизлайк для каждого пользователя.";
-
-            log.error("Ошибка при установке дизлайка: {}", msg);
-            throw new ValidationException(msg);
+        if (currentStatus == true) {
+            reviewStorage.removeReactionFromReview(reviewId, userId);
         }
 
         reviewStorage.addReactionToReview(reviewId, userId, false);
