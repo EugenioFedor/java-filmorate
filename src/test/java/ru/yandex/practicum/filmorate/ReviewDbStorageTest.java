@@ -74,6 +74,7 @@ public class ReviewDbStorageTest {
         assertThat(reviewOptional)
                 .isPresent()
                 .hasValueSatisfying(r -> {
+                    assertThat(r.getReviewId()).isNotNull();
                     assertThat(r).hasFieldOrPropertyWithValue("content", "This film is sooo good.");
                     assertThat(r.getIsPositive()).isTrue();
                     assertThat(r.getUpdatedAt()).isNull();
