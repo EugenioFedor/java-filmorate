@@ -66,6 +66,17 @@ public class ReviewService {
         Review review = findReviewOrThrow(reviewId);
         userService.getById(userId);
 
+        Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
+
+        if (currentStatus != null) {
+            String msg = currentStatus
+                    ? "Максимум 1 лайк для каждого пользователя."
+                    : "У вас уже стоит дизлайк. Нельзя ставить лайк и дизлайк одновременно.";
+
+            log.error("Ошибка при установке лайка: {}", msg);
+            throw new ValidationException(msg);
+        }
+
         reviewStorage.addReactionToReview(reviewId, userId, true);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
         review.setUseful(usefulPoints);
@@ -75,6 +86,17 @@ public class ReviewService {
     public void addDislikeToFilmReview(long reviewId, long userId) {
         Review review = findReviewOrThrow(reviewId);
         userService.getById(userId);
+
+        Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
+
+        if (currentStatus != null) {
+            String msg = currentStatus
+                    ? "У вас уже стоит лайк. Нельзя ставить лайк и дизлайк одновременно."
+                    : "Максимум 1 дизлайк для каждого пользователя.";
+
+            log.error("Ошибка при установке дизлайка: {}", msg);
+            throw new ValidationException(msg);
+        }
 
         reviewStorage.addReactionToReview(reviewId, userId, false);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
