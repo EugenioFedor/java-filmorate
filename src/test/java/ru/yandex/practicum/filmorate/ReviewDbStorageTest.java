@@ -75,7 +75,7 @@ public class ReviewDbStorageTest {
                 .isPresent()
                 .hasValueSatisfying(r -> {
                     assertThat(r).hasFieldOrPropertyWithValue("content", "This film is sooo good.");
-                    assertThat(r.isPositive()).isTrue();
+                    assertThat(r.getIsPositive()).isTrue();
                     assertThat(r.getUpdatedAt()).isNull();
                     assertThat(r).hasFieldOrPropertyWithValue("userId", savedReview.getUserId());
                 });
@@ -111,7 +111,7 @@ public class ReviewDbStorageTest {
                 .isPresent()
                 .hasValueSatisfying(r -> {
                     assertThat(r.getContent()).isEqualTo("very bad film");
-                    assertThat(r.isPositive()).isFalse();
+                    assertThat(r.getIsPositive()).isFalse();
                     assertThat(r.getUpdatedAt()).isNotNull();
                     assertThat(r.getReviewId()).isEqualTo(savedReview.getReviewId());
                 });

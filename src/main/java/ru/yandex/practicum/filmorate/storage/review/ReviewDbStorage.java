@@ -29,7 +29,7 @@ public class ReviewDbStorage {
         long id = insert(sql,
                 review.getUserId(),
                 review.getFilmId(),
-                review.isPositive(),
+                review.getIsPositive(),
                 review.getUseful(),
                 review.getContent(),
                 review.getCreatedAt()
@@ -50,7 +50,7 @@ public class ReviewDbStorage {
                 """;
 
         update(sql,
-                review.isPositive(),
+                review.getIsPositive(),
                 review.getUseful(),
                 review.getContent(),
                 review.getUpdatedAt(),
@@ -175,7 +175,7 @@ public class ReviewDbStorage {
         review.setReviewId(rs.getLong("id"));
         review.setFilmId(rs.getLong("film_id"));
         review.setUserId(rs.getLong("user_id"));
-        review.setPositive(rs.getBoolean("is_positive"));
+        review.setIsPositive(rs.getBoolean("is_positive"));
         review.setUseful(rs.getInt("useful"));
         review.setContent(rs.getString("review"));
         review.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());

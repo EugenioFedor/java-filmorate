@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Review;
@@ -15,12 +16,12 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping
-    public Review addFilmReview(@RequestBody Review review) {
+    public Review addFilmReview(@Valid @RequestBody Review review) {
         return reviewService.addFilmReview(review);
     }
 
     @PutMapping
-    public Review updateFilmReview(@RequestBody Review review) {
+    public Review updateFilmReview(@Valid @RequestBody Review review) {
         return reviewService.updateFilmReview(review);
     }
 

@@ -35,7 +35,13 @@ public class ReviewService {
         userService.getById(review.getUserId());
         filmService.getById(review.getFilmId());
 
+        if (review.getReviewId() == null || review.getReviewId() <= 0) {
+            throw new ValidationException("Для обновления отзыва необходимо указать корректный ID.");
+        }
+
         review.setUpdatedAt(LocalDateTime.now());
+        int usefulPoints = reviewStorage.calculateUseful(review.getReviewId());
+        review.setUseful(usefulPoints);
         Review processedReview = reviewStorage.updateReview(review);
         log.info("Отзыв обновлен: {}", processedReview);
 
