@@ -7,6 +7,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
@@ -174,5 +176,66 @@ public class UserDbStorage implements UserStorage {
 
         return new HashSet<>(jdbcTemplate.query(sql,
                 (rs, rowNum) -> rs.getLong("friend_id"), id));
+    }
+
+    @Override
+    public List<Film> getRecommendations(Long userId) {
+        String findSimilarUserSql = """
+                SELECT l2.user_id, COUNT(*) AS common_likes
+                FROM likes l1
+                JOIN likes l2 ON l1.film_id = l2.film_id
+                WHERE l1.user_id = ? AND l2.user_id != ?
+                GROUP BY l2.user_id
+                ORDER BY common_likes DESC
+                LIMIT 1
+                """;
+
+        List<Long> similarUsers = jdbcTemplate.query(
+                findSimilarUserSql,
+                (rs, rowNum) -> rs.getLong("user_id"),
+                userId,
+                userId
+        );
+
+        if (similarUsers.isEmpty()) {
+            return List.of();
+        }
+
+        Long similarUserId = similarUsers.get(0);
+
+        String recommendationsSql = """
+                SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
+                FROM films f
+                JOIN likes l ON f.id = l.film_id
+                WHERE l.user_id = ?
+                AND f.id NOT IN (
+                    SELECT film_id
+                    FROM likes
+                    WHERE user_id = ?
+                )
+                ORDER BY f.id
+                """;
+
+        return jdbcTemplate.query(
+                recommendationsSql,
+                this::mapRowToFilm,
+                similarUserId,
+                userId
+        );
+    }
+
+    private Film mapRowToFilm(ResultSet rs, int rowNum) throws SQLException {
+        Film film = new Film();
+        film.setId(rs.getLong("id"));
+        film.setName(rs.getString("name"));
+        film.setDescription(rs.getString("description"));
+        film.setReleaseDate(rs.getDate("release_date").toLocalDate());
+        film.setDuration(rs.getInt("duration"));
+
+        MpaRating mpa = new MpaRating();
+        mpa.setId(rs.getLong("mpa_id"));
+        film.setMpa(mpa);
+
+        return film;
     }
 }
