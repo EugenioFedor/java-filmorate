@@ -7,7 +7,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.model.Event;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
@@ -25,8 +26,6 @@ public class UserDbStorage implements UserStorage {
     private final JdbcTemplate jdbcTemplate;
 
     private final RowMapper<User> userMapper = this::mapRowToUser;
-
-    private final RowMapper<Event> eventMapper = this::mapRowToEvent;
 
     @Override
     public User create(User user) {
@@ -114,22 +113,14 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(Long userId, Long friendId) {
-        String addFriendSql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'CONFIRMED')";
-        jdbcTemplate.update(addFriendSql, userId, friendId);
-        String insertFeedSql = "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
-                "VALUES (?, ?, ?, ?, ?)";
-        long timestamp = System.currentTimeMillis();
-        jdbcTemplate.update(insertFeedSql, userId, timestamp, "FRIEND", "ADD", friendId);
+        String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'CONFIRMED')";
+        jdbcTemplate.update(sql, userId, friendId);
     }
 
     @Override
     public void removeFriend(Long userId, Long friendId) {
-        String removeFriendSql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
-        jdbcTemplate.update(removeFriendSql, userId, friendId);
-        String insertFeedSql = "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
-                "VALUES (?, ?, ?, ?, ?)";
-        long timestamp = System.currentTimeMillis();
-        jdbcTemplate.update(insertFeedSql, userId, timestamp, "FRIEND", "REMOVE", friendId);
+        String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
+        jdbcTemplate.update(sql, userId, friendId);
     }
 
     @Override
@@ -187,34 +178,64 @@ public class UserDbStorage implements UserStorage {
                 (rs, rowNum) -> rs.getLong("friend_id"), id));
     }
 
-    private Event mapRowToEvent(ResultSet rs, int rowNum) throws SQLException {
-        Event event = new Event();
-        event.setEventId(rs.getLong("event_id"));
-        event.setUserId(rs.getLong("user_id"));
-        event.setEntityId(rs.getLong("entity_id"));
-        event.setEventType(rs.getString("event_type"));
-        event.setOperation(rs.getString("operation"));
-        event.setTimestamp(rs.getLong("timestamp"));
-
-        return event;
-    }
-
     @Override
-    public List<Event> getFeed(Long userId) {
-        String sql = "SELECT event_id, user_id, timestamp, event_type, operation, entity_id \n" +
-                "FROM feed\n" +
-                "WHERE user_id = ?\n" +
-                "ORDER BY timestamp ASC";
+    public List<Film> getRecommendations(Long userId) {
+        String findSimilarUserSql = """
+                SELECT l2.user_id, COUNT(*) AS common_likes
+                FROM likes l1
+                JOIN likes l2 ON l1.film_id = l2.film_id
+                WHERE l1.user_id = ? AND l2.user_id != ?
+                GROUP BY l2.user_id
+                ORDER BY common_likes DESC
+                LIMIT 1
+                """;
 
-        return jdbcTemplate.query(sql, eventMapper, userId);
-    }
+        List<Long> similarUsers = jdbcTemplate.query(
+                findSimilarUserSql,
+                (rs, rowNum) -> rs.getLong("user_id"),
+                userId,
+                userId
+        );
 
-    @Override
-    public void delete(Long userId) {
-        int rowsDeleted = jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId);
-
-        if (rowsDeleted == 0) {
-            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        if (similarUsers.isEmpty()) {
+            return List.of();
         }
+
+        Long similarUserId = similarUsers.get(0);
+
+        String recommendationsSql = """
+                SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
+                FROM films f
+                JOIN likes l ON f.id = l.film_id
+                WHERE l.user_id = ?
+                AND f.id NOT IN (
+                    SELECT film_id
+                    FROM likes
+                    WHERE user_id = ?
+                )
+                ORDER BY f.id
+                """;
+
+        return jdbcTemplate.query(
+                recommendationsSql,
+                this::mapRowToFilm,
+                similarUserId,
+                userId
+        );
+    }
+
+    private Film mapRowToFilm(ResultSet rs, int rowNum) throws SQLException {
+        Film film = new Film();
+        film.setId(rs.getLong("id"));
+        film.setName(rs.getString("name"));
+        film.setDescription(rs.getString("description"));
+        film.setReleaseDate(rs.getDate("release_date").toLocalDate());
+        film.setDuration(rs.getInt("duration"));
+
+        MpaRating mpa = new MpaRating();
+        mpa.setId(rs.getLong("mpa_id"));
+        film.setMpa(mpa);
+
+        return film;
     }
 }
