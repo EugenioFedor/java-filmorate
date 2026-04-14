@@ -24,7 +24,7 @@ public class ReviewService {
         userService.getById(review.getUserId());
         filmService.getById(review.getFilmId());
 
-        review.setCreatedAt(LocalDateTime.now());
+        review.setCreatedAt(LocalDateTime.now().withNano(0));
         review.setUseful(0);
         Review processedReview = reviewStorage.addReview(review);
         log.info("Добавлен новый отзыв: {}", processedReview);
@@ -33,17 +33,12 @@ public class ReviewService {
     }
 
     public Review updateFilmReview(Review review) {
-        userService.getById(review.getUserId());
-        filmService.getById(review.getFilmId());
-
-        if (review.getReviewId() == null || review.getReviewId() <= 0) {
-            log.warn("Некоректный id на обновление отзыва: {}", review.getReviewId());
-            throw new ValidationException("Для обновления отзыва необходимо указать корректный ID.");
-        }
-
-        review.setUpdatedAt(LocalDateTime.now());
-        int usefulPoints = reviewStorage.calculateUseful(review.getReviewId());
-        review.setUseful(usefulPoints);
+        Review storedReview = findReviewOrThrow(review.getReviewId());
+        review.setUpdatedAt(LocalDateTime.now().withNano(0));
+        review.setUseful(storedReview.getUseful());
+        review.setCreatedAt(storedReview.getCreatedAt());
+        review.setFilmId(storedReview.getFilmId());
+        review.setUserId(storedReview.getUserId());
         Review processedReview = reviewStorage.updateReview(review);
         log.info("Отзыв обновлен: {}", processedReview);
 
@@ -70,7 +65,7 @@ public class ReviewService {
     }
 
     public void addLikeToFilmReview(long reviewId, long userId) {
-        Review review = findReviewOrThrow(reviewId);
+        Review storedReview = findReviewOrThrow(reviewId);
         userService.getById(userId);
 
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
@@ -81,9 +76,9 @@ public class ReviewService {
 
         reviewStorage.addReactionToReview(reviewId, userId, true);
         int usefulPoints = reviewStorage.calculateUseful(reviewId);
-        review.setUseful(usefulPoints);
-        reviewStorage.updateReview(review);
-        log.info("Поставлен лайк на отзыв: {}", review);
+        storedReview.setUseful(usefulPoints);
+        reviewStorage.updateReview(storedReview);
+        log.info("Поставлен лайк на отзыв: {}", storedReview);
     }
 
     public void addDislikeToFilmReview(long reviewId, long userId) {
@@ -108,8 +103,7 @@ public class ReviewService {
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
         checkIfStatusExists(currentStatus, reviewId, userId);
 
-        if (currentStatus != null && !currentStatus) {
-            log.warn("Попытка удалить дизлайк вместо лайка.");
+        if (!currentStatus) {
             throw new ValidationException("Попытка удалить дизлайк вместо лайка.");
         }
 
@@ -125,8 +119,7 @@ public class ReviewService {
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
         checkIfStatusExists(currentStatus, reviewId, userId);
 
-        if (currentStatus != null && currentStatus) {
-            log.warn("Попытка удалить лайк вместо дизлайка.");
+        if (currentStatus) {
             throw new ValidationException("Попытка удалить лайк вместо дизлайка.");
         }
 
@@ -139,15 +132,13 @@ public class ReviewService {
 
     private void checkIfStatusExists(Boolean status, long reviewId, long userId) {
         if (status == null) {
-            log.warn("Не найдена реакция: reviewId={}, userId={}", reviewId, userId);
-            throw new NotFoundException("Реакция не найдена: reviewId=" + reviewId + ", userId=" + userId);
+            throw new NotFoundException("Реакция: reviewId=" + reviewId + ", userId=" + userId);
         }
     }
 
     private Review findReviewOrThrow(Long id) {
-        return reviewStorage.getReviewById(id).orElseThrow(() -> {
-            log.warn("Не найден отзыв с id: {}", id);
-            return new NotFoundException("Отзыв с id = " + id + " не найден.");
-        });
+        return reviewStorage.getReviewById(id).orElseThrow(() ->
+                new NotFoundException("Отзыв с id = " + id)
+        );
     }
 }

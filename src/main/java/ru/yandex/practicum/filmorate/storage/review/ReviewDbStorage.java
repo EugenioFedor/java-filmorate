@@ -7,7 +7,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
 
 import java.sql.*;
@@ -58,8 +57,7 @@ public class ReviewDbStorage {
                 review.getReviewId()
         );
 
-        return getReviewById(review.getReviewId())
-                .orElseThrow(() -> new NotFoundException("Отзыв не найден"));
+        return review;
     }
 
     public void deleteReviewById(long reviewId) {
