@@ -37,6 +37,7 @@ public class ReviewService {
         filmService.getById(review.getFilmId());
 
         if (review.getReviewId() == null || review.getReviewId() <= 0) {
+            log.warn("Некоректный id на обновление отзыва: {}", review.getReviewId());
             throw new ValidationException("Для обновления отзыва необходимо указать корректный ID.");
         }
 
@@ -65,7 +66,6 @@ public class ReviewService {
             return reviewStorage.getReviews();
         }
 
-        filmService.getById(filmId);
         return reviewStorage.getReviewsByFilmId(filmId, limit);
     }
 
@@ -75,7 +75,7 @@ public class ReviewService {
 
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
 
-        if (currentStatus == false) {
+        if (currentStatus != null && !currentStatus) {
             reviewStorage.removeReactionFromReview(reviewId, userId);
         }
 
@@ -92,7 +92,7 @@ public class ReviewService {
 
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
 
-        if (currentStatus == true) {
+        if (currentStatus != null && currentStatus) {
             reviewStorage.removeReactionFromReview(reviewId, userId);
         }
 
@@ -108,9 +108,9 @@ public class ReviewService {
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
         checkIfStatusExists(currentStatus, reviewId, userId);
 
-        if (currentStatus == false) {
-            log.error("Ошибка - попытка удалить дизлайк вместо лайка.");
-            throw new ValidationException("Попытка удалить дизлайк.");
+        if (currentStatus != null && !currentStatus) {
+            log.warn("Попытка удалить дизлайк вместо лайка.");
+            throw new ValidationException("Попытка удалить дизлайк вместо лайка.");
         }
 
         reviewStorage.removeReactionFromReview(reviewId, userId);
@@ -125,8 +125,8 @@ public class ReviewService {
         Boolean currentStatus = reviewStorage.getReactionStatus(reviewId, userId);
         checkIfStatusExists(currentStatus, reviewId, userId);
 
-        if (currentStatus == true) {
-            log.error("Ошибка - попытка удалить лайк вместо дизлайка.");
+        if (currentStatus != null && currentStatus) {
+            log.warn("Попытка удалить лайк вместо дизлайка.");
             throw new ValidationException("Попытка удалить лайк вместо дизлайка.");
         }
 
@@ -139,14 +139,14 @@ public class ReviewService {
 
     private void checkIfStatusExists(Boolean status, long reviewId, long userId) {
         if (status == null) {
-            log.error("Ошибка - не найдена реакция: reviewId={}, userId={}", reviewId, userId);
+            log.warn("Не найдена реакция: reviewId={}, userId={}", reviewId, userId);
             throw new NotFoundException("Реакция не найдена: reviewId=" + reviewId + ", userId=" + userId);
         }
     }
 
     private Review findReviewOrThrow(Long id) {
         return reviewStorage.getReviewById(id).orElseThrow(() -> {
-            log.error("Ошибка - не найден отзыв с id: {}", id);
+            log.warn("Не найден отзыв с id: {}", id);
             return new NotFoundException("Отзыв с id = " + id + " не найден.");
         });
     }
