@@ -108,4 +108,8 @@ public class FilmService {
             film.setGenres(new HashSet<>(sortedGenres));
         }
     }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
+    }
 }
