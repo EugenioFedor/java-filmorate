@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.*;
@@ -49,7 +48,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getMostPopularFilms(int count, Integer year, Long genreId) {
+    public List<Film> getPopular(int count) {
         return films.values().stream()
                 .sorted((f1, f2) -> Integer.compare(
                         likes.getOrDefault(f2.getId(), Set.of()).size(),
@@ -59,23 +58,12 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getCommonFilms(Long userId,Long friendId) {
-        return List.of();
-    }
-
-    @Override
     public Collection<Film> findAll() {
         return films.values();
     }
 
     @Override
-    public void delete(Long filmId) {
-        Film removed = films.remove(filmId);
-
-        if (removed == null) {
-            throw new NotFoundException("Film not found");
-        }
-
-        likes.remove(filmId);
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        return List.of();
     }
 }

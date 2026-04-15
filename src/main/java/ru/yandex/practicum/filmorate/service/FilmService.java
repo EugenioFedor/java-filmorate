@@ -69,15 +69,8 @@ public class FilmService {
         filmStorage.removeLike(filmId, userId);
     }
 
-    public List<Film> getMostPopularFilms(int count, Integer year, Long genreId) {
-        return filmStorage.getMostPopularFilms(count, year, genreId);
-    }
-
-    public List<Film> getCommonFilms(Long userId, Long friendId) {
-        if (userId == null || friendId == null) {
-            return List.of();
-        }
-        return filmStorage.getCommonFilms(userId, friendId);
+    public List<Film> getPopular(int count) {
+        return filmStorage.getPopular(count);
     }
 
     private void validateFilm(Film film) {
@@ -109,8 +102,7 @@ public class FilmService {
         }
     }
 
-    public void deleteFilmById(Long filmId) {
-        getById(filmId);
-        filmStorage.delete(filmId);
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 }
