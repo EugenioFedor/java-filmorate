@@ -201,22 +201,22 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getCommonFilms(Long userId,Long friendId) {
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
         String sql = """
-                SELECT f.*, m.name
-                FROM films f
-                JOIN mpa_ratings m ON f.mpa_id = m.id
-                LEFT JOIN likes l ON f.id = l.film_id
-                WHERE f.id IN (
-                       SELECT film_id FROM likes WHERE user_id = :userId
-                       INTERSECT
-                       SELECT film_id FROM likes WHERE user_id = :friendId
-                       )
-                GROUP BY f.id, m.name
-                ORDER BY COUNT(l.user_id) DESC
-        """;
+                        SELECT f.*, m.name
+                        FROM films f
+                        JOIN mpa_ratings m ON f.mpa_id = m.id
+                        LEFT JOIN likes l ON f.id = l.film_id
+                        WHERE f.id IN (
+                               SELECT film_id FROM likes WHERE user_id = :userId
+                               INTERSECT
+                               SELECT film_id FROM likes WHERE user_id = :friendId
+                               )
+                        GROUP BY f.id, m.name
+                        ORDER BY COUNT(l.user_id) DESC
+                """;
         List<Film> films = jdbcTemplate.query(
-                sql,Map.of("userId",userId,"friendId",friendId),this::mapRowToFilm
+                sql, Map.of("userId", userId, "friendId", friendId), this::mapRowToFilm
         );
         loadGenres(films);
         return films;
@@ -340,7 +340,7 @@ public class FilmDbStorage implements FilmStorage {
         MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
         Map<Long, Set<Genre>> genresByFilmId = new HashMap<>();
 
-        jdbcTemplate.query(getGenresSql, parameters,rs -> {
+        jdbcTemplate.query(getGenresSql, parameters, rs -> {
             long filmId = rs.getLong("film_id");
             Genre genre = new Genre(rs.getLong("id"), rs.getString("name"));
             genresByFilmId.computeIfAbsent(filmId, k -> new HashSet<>()).add(genre);

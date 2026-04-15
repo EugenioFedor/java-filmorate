@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS film_directors;
+DROP TABLE IF EXISTS directors;
 DROP TABLE IF EXISTS review_likes;
 DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS film_genres;

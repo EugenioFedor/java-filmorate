@@ -73,11 +73,11 @@ public class FilmService {
         return filmStorage.getPopular(count);
     }
 
-    public List<Film> getCommonFilms(Long userId,Long friendId) {
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
         if (userId == null || friendId == null) {
             return List.of();
         }
-        return filmStorage.getCommonFilms(userId,friendId);
+        return filmStorage.getCommonFilms(userId, friendId);
     }
 
     private void validateFilm(Film film) {
