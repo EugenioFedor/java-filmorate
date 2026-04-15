@@ -215,8 +215,8 @@ public class ReviewDbStorageTest {
 
         List<Review> reviews = reviewDbStorage.getReviewsByFilmId(savedFilm1.getId(), 2);
         assertThat(reviews).hasSize(2)
-                        .extracting(Review::getReviewId)
-                        .containsExactly(savedReview1.getReviewId(), savedReview2.getReviewId());
+                .extracting(Review::getReviewId)
+                .containsExactly(savedReview1.getReviewId(), savedReview2.getReviewId());
         assertThat(reviews)
                 .extracting(Review::getReviewId)
                 .doesNotContain(savedReview3.getReviewId(), savedReview4.getReviewId());
@@ -377,7 +377,7 @@ public class ReviewDbStorageTest {
         reviewDbStorage.updateReview(anotherReview);
         assertThat(usefulPoints2).isEqualTo(3);
 
-        List<Review> reviews = reviewDbStorage.getReviewsByFilmId(savedFilm.getId(),2);
+        List<Review> reviews = reviewDbStorage.getReviewsByFilmId(savedFilm.getId(), 2);
         assertThat(reviews).hasSize(2);
         assertThat(reviews.getFirst().getReviewId()).isEqualTo(anotherReview.getReviewId());
         assertThat(reviews.getLast().getReviewId()).isEqualTo(savedReview.getReviewId());

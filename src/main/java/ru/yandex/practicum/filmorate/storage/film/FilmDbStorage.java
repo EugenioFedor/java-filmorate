@@ -304,4 +304,13 @@ public class FilmDbStorage implements FilmStorage {
 
         return mpa;
     }
+
+    @Override
+    public void delete(Long filmId) {
+        int rowsDeleted = jdbcTemplate.update("DELETE FROM films WHERE id = :filmId", Map.of("filmId", filmId));
+
+        if (rowsDeleted == 0) {
+            throw new NotFoundException("Фильм с id " + filmId + " не найден");
+        }
+    }
 }

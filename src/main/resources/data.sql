@@ -15,7 +15,7 @@ VALUES
 (5, 'Документальный'),
 (6, 'Боевик');
 
-MERGE INTO users (id, email, login, name, birthday) KEY(id)
-VALUES (1, 'test@test.com', 'testlogin', 'Test User', '2000-01-01');
+--MERGE INTO users (id, email, login, name, birthday) KEY(id)
+--VALUES (1, 'test@test.com', 'testlogin', 'Test User', '2000-01-01');
 
-ALTER TABLE users ALTER COLUMN id RESTART WITH 2;
+--ALTER TABLE users ALTER COLUMN id RESTART WITH 2;
