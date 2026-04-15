@@ -7,6 +7,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
@@ -16,12 +17,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 
 @RequiredArgsConstructor
 @Repository
 public class FilmDbStorage implements FilmStorage {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final DirectorStorage directorStorage;
 
     @Override
     public Film create(Film film) {
@@ -60,6 +64,8 @@ public class FilmDbStorage implements FilmStorage {
         film.setId(keyHolder.getKey().longValue());
 
         saveGenres(film);
+
+        saveDirectors(film);
 
         return film;
     }
@@ -101,7 +107,13 @@ public class FilmDbStorage implements FilmStorage {
                 Map.of("id", film.getId())
         );
 
+        jdbcTemplate.update(
+                "DELETE FROM film_directors WHERE film_id = :id",
+                Map.of("id", film.getId())
+        );
+
         saveGenres(film);
+        saveDirectors(film);
 
         return getById(film.getId()).orElseThrow();
     }
@@ -115,6 +127,7 @@ public class FilmDbStorage implements FilmStorage {
 
         for (Film film : films) {
             film.setGenres(getGenres(film.getId()));
+            film.setDirectors(getDirectors(film.getId()));
             film.setMpa(getMpa(film.getMpa().getId()));
         }
 
@@ -137,6 +150,7 @@ public class FilmDbStorage implements FilmStorage {
         Film film = films.get(0);
 
         film.setGenres(getGenres(id));
+        film.setDirectors(getDirectors(id));
         film.setMpa(getMpa(film.getMpa().getId()));
 
         return Optional.of(film);
@@ -163,6 +177,7 @@ public class FilmDbStorage implements FilmStorage {
 
         for (Film film : films) {
             film.setGenres(getGenres(film.getId()));
+            film.setDirectors(getDirectors(film.getId()));
             film.setMpa(getMpa(film.getMpa().getId()));
         }
 
@@ -303,5 +318,100 @@ public class FilmDbStorage implements FilmStorage {
         mpa.setName(rs.getString("name"));
 
         return mpa;
+    }
+
+    @Override
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        // Проверяем существование режиссёра
+        directorStorage.getById(directorId)
+                .orElseThrow(() -> new ru.yandex.practicum.filmorate.exception.NotFoundException(
+                        "Режиссёр с id " + directorId + " не найден"));
+
+        String sql;
+
+        if ("year".equals(sortBy)) {
+            sql = """
+                    SELECT f.*
+                    FROM films f
+                    JOIN film_directors fd ON f.id = fd.film_id
+                    WHERE fd.director_id = :directorId
+                    ORDER BY f.release_date ASC
+                    """;
+        } else if ("likes".equals(sortBy)) {
+            sql = """
+                    SELECT f.*
+                    FROM films f
+                    JOIN film_directors fd ON f.id = fd.film_id
+                    LEFT JOIN (
+                        SELECT film_id, COUNT(user_id) AS likes_count
+                        FROM likes
+                        GROUP BY film_id
+                    ) l ON f.id = l.film_id
+                    WHERE fd.director_id = :directorId
+                    ORDER BY COALESCE(l.likes_count, 0) DESC
+                    """;
+        } else {
+            throw new ru.yandex.practicum.filmorate.exception.ValidationException(
+                    "Параметр sortBy должен быть 'year' или 'likes'");
+        }
+
+        List<Film> films = jdbcTemplate.query(sql,
+                Map.of("directorId", directorId),
+                this::mapRowToFilm);
+
+        for (Film film : films) {
+            film.setGenres(getGenres(film.getId()));
+            film.setDirectors(getDirectors(film.getId()));
+            film.setMpa(getMpa(film.getMpa().getId()));
+        }
+
+        return films;
+    }
+
+    private void saveDirectors(Film film) {
+        if (film.getDirectors() == null) return;
+
+        Set<Long> uniqueDirectors = new HashSet<>();
+
+        for (Director director : film.getDirectors()) {
+            if (uniqueDirectors.add(director.getId())) {
+                // Проверяем существование режиссёра
+                directorStorage.getById(director.getId())
+                        .orElseThrow(() -> new ru.yandex.practicum.filmorate.exception.NotFoundException(
+                                "Режиссёр с id " + director.getId() + " не найден"));
+
+                jdbcTemplate.update(
+                        "INSERT INTO film_directors (film_id, director_id) VALUES (:filmId, :directorId)",
+                        Map.of(
+                                "filmId", film.getId(),
+                                "directorId", director.getId()
+                        )
+                );
+            }
+        }
+    }
+
+    private Set<Director> getDirectors(Long filmId) {
+        List<Director> directors = jdbcTemplate.query(
+                """
+                        SELECT d.id, d.name
+                        FROM film_directors fd
+                        JOIN directors d ON fd.director_id = d.id
+                        WHERE fd.film_id = :filmId
+                        """,
+                Map.of("filmId", filmId),
+                this::mapRowToDirector
+        );
+
+        return directors.stream()
+                .sorted(Comparator.comparing(Director::getId))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Director mapRowToDirector(ResultSet rs, int rowNum) throws SQLException {
+        Director director = new Director();
+        director.setId(rs.getLong("id"));
+        director.setName(rs.getString("name"));
+        return director;
     }
 }
