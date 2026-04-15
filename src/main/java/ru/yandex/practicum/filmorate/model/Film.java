@@ -15,6 +15,7 @@ public class Film {
     private LocalDate releaseDate;
     private int duration;
     private Set<Genre> genres = new LinkedHashSet<>();
+    private Set<Director> directors = new LinkedHashSet<>();
 
     private MpaRating mpa;
     private Set<Long> likes = new HashSet<>();
