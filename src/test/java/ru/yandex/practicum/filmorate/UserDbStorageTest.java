@@ -39,7 +39,6 @@ class UserDbStorageTest {
                     assertThat(u).hasFieldOrPropertyWithValue("id", 1L);
                     assertThat(u).hasFieldOrPropertyWithValue("login", "test-login");
                     assertThat(u).hasFieldOrPropertyWithValue("name", "Test User");
-                    }
-                );
+                });
     }
 }
