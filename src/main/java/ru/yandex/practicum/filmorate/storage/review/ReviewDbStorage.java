@@ -66,14 +66,26 @@ public class ReviewDbStorage {
     }
 
     public Optional<Review> getReviewById(long reviewId) {
-        String sql = "SELECT * FROM reviews WHERE id=?";
+        String sql = """
+                SELECT r.*,
+                COALESCE(SUM (CASE WHEN rl.is_like = TRUE THEN 1
+                WHEN rl.is_like = FALSE THEN -1 ELSE 0 END),0) AS useful_score
+                FROM reviews r
+                LEFT JOIN review_likes rl ON r.id = rl.review_id
+                WHERE id=?
+                GROUP BY r.id""";
         return findOne(sql, reviewId);
     }
 
     public List<Review> getReviewsByFilmId(long filmId, int count) {
         String sql = """
-                SELECT * FROM reviews
+                SELECT r.*,
+                COALESCE(SUM (CASE WHEN rl.is_like = TRUE THEN 1
+                WHEN rl.is_like = FALSE THEN -1 ELSE 0 END),0) AS useful_score
+                FROM reviews r
+                LEFT JOIN review_likes rl ON r.id = rl.review_id
                 WHERE film_id=?
+                GROUP BY r.id
                 ORDER BY useful DESC, id ASC
                 LIMIT ?
                 """;
@@ -81,7 +93,15 @@ public class ReviewDbStorage {
     }
 
     public List<Review> getReviews() {
-        String sql = "SELECT * FROM reviews ORDER BY useful DESC, id ASC";
+        String sql = """
+                SELECT r.*,
+                COALESCE(SUM (CASE WHEN rl.is_like = TRUE THEN 1
+                WHEN rl.is_like = FALSE THEN -1 ELSE 0 END),0) AS useful_score
+                FROM reviews r
+                LEFT JOIN review_likes rl ON r.id = rl.review_id
+                GROUP BY r.id
+                ORDER BY useful DESC, id ASC
+                """;
         return findMany(sql);
     }
 
@@ -177,7 +197,7 @@ public class ReviewDbStorage {
         review.setFilmId(rs.getLong("film_id"));
         review.setUserId(rs.getLong("user_id"));
         review.setIsPositive(rs.getBoolean("is_positive"));
-        review.setUseful(rs.getInt("useful"));
+        review.setUseful(rs.getInt("useful_score"));
         review.setContent(rs.getString("review"));
         review.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         review.setUpdatedAt(Optional.ofNullable(rs.getTimestamp("updated_at"))
