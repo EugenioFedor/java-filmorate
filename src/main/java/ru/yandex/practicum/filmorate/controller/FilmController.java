@@ -49,7 +49,6 @@ public class FilmController {
     public List<Film> getMostPopularFilms(@RequestParam(defaultValue = "10") int count,
                                           @RequestParam(required = false) Integer year,
                                           @RequestParam(required = false) Long genreId) {
-        System.out.println("Controller year " + year + " genreId " + genreId);
         return filmService.getMostPopularFilms(count, year, genreId);
     }
 
