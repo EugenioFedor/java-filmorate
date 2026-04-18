@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
@@ -24,6 +25,8 @@ public class UserDbStorage implements UserStorage {
     private final JdbcTemplate jdbcTemplate;
 
     private final RowMapper<User> userMapper = this::mapRowToUser;
+
+    private final RowMapper<Event> eventMapper = this::mapRowToEvent;
 
     @Override
     public User create(User user) {
@@ -111,14 +114,22 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(Long userId, Long friendId) {
-        String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'CONFIRMED')";
-        jdbcTemplate.update(sql, userId, friendId);
+        String addFriendSql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'CONFIRMED')";
+        jdbcTemplate.update(addFriendSql, userId, friendId);
+        String insertFeedSql = "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
+                "VALUES (?, ?, ?, ?, ?)";
+        long timestamp = System.currentTimeMillis();
+        jdbcTemplate.update(insertFeedSql, userId, timestamp, "FRIEND", "ADD", friendId);
     }
 
     @Override
     public void removeFriend(Long userId, Long friendId) {
-        String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
-        jdbcTemplate.update(sql, userId, friendId);
+        String removeFriendSql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
+        jdbcTemplate.update(removeFriendSql, userId, friendId);
+        String insertFeedSql = "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
+                "VALUES (?, ?, ?, ?, ?)";
+        long timestamp = System.currentTimeMillis();
+        jdbcTemplate.update(insertFeedSql, userId, timestamp, "FRIEND", "REMOVE", friendId);
     }
 
     @Override
@@ -174,5 +185,26 @@ public class UserDbStorage implements UserStorage {
 
         return new HashSet<>(jdbcTemplate.query(sql,
                 (rs, rowNum) -> rs.getLong("friend_id"), id));
+    }
+
+    private Event mapRowToEvent(ResultSet rs, int rowNum) throws SQLException {
+        Event event = new Event();
+        event.setEventId(rs.getLong("event_id"));
+        event.setUserId(rs.getLong("user_id"));
+        event.setEntityId(rs.getLong("entity_id"));
+        event.setEventType(rs.getString("event_type"));
+        event.setOperation(rs.getString("operation"));
+        event.setTimestamp(rs.getLong("timestamp"));
+
+        return event;
+    }
+
+    public List<Event> getFeed(Long userId) {
+        String sql = "SELECT event_id, user_id, timestamp, event_type, operation, entity_id \n" +
+                "FROM feed\n" +
+                "WHERE user_id = ?\n" +
+                "ORDER BY timestamp ASC";
+
+        return jdbcTemplate.query(sql, eventMapper, userId);
     }
 }
