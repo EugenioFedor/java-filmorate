@@ -191,6 +191,20 @@ public class FilmDbStorage implements FilmStorage {
                         "userId", userId
                 )
         );
+
+        long timestamp = System.currentTimeMillis();
+        jdbcTemplate.update(
+                "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
+                        "VALUES (:userId, :timestamp, :eventType, :operation, :filmId)",
+                Map.of(
+                        "userId", userId,
+                        "timestamp", timestamp,
+                        "eventType", "LIKE",
+                        "operation", "ADD",
+                        "filmId", filmId
+
+                )
+        );
     }
 
     @Override
@@ -201,6 +215,20 @@ public class FilmDbStorage implements FilmStorage {
                 Map.of(
                         "filmId", filmId,
                         "userId", userId
+                )
+        );
+
+        long timestamp = System.currentTimeMillis();
+        jdbcTemplate.update(
+                "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
+                        "VALUES (:userId, :timestamp, :eventType, :operation, :filmId)",
+                Map.of(
+                        "userId", userId,
+                        "timestamp", timestamp,
+                        "eventType", "LIKE",
+                        "operation", "REMOVE",
+                        "filmId", filmId
+
                 )
         );
     }
