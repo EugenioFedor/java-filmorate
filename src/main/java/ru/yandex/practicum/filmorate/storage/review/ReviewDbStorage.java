@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
 
 import java.sql.*;
@@ -36,6 +37,12 @@ public class ReviewDbStorage {
         );
 
         review.setReviewId(id);
+
+        String insertFeedSql = "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
+                "VALUES (?, ?, ?, ?, ?)";
+        long timestamp = System.currentTimeMillis();
+        jdbc.update(insertFeedSql, review.getUserId(), timestamp, "REVIEW", "ADD", id);
+
         return review;
     }
 
@@ -57,12 +64,24 @@ public class ReviewDbStorage {
                 review.getReviewId()
         );
 
+        String insertFeedSql = "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
+                "VALUES (?, ?, ?, ?, ?)";
+        long timestamp = System.currentTimeMillis();
+        jdbc.update(insertFeedSql, review.getUserId(), timestamp, "REVIEW", "UPDATE", review.getReviewId());
+
         return review;
     }
 
     public void deleteReviewById(long reviewId) {
-        String sql = "DELETE FROM reviews WHERE id=?";
-        update(sql, reviewId);
+        Review review = getReviewById(reviewId)
+                .orElseThrow(() -> new NotFoundException("Review not found"));
+        String removeReviewSql = "DELETE FROM reviews WHERE id=?";
+        update(removeReviewSql, reviewId);
+
+        String insertFeedSql = "INSERT INTO feed (user_id, timestamp, event_type, operation, entity_id) " +
+                "VALUES (?, ?, ?, ?, ?)";
+        long timestamp = System.currentTimeMillis();
+        jdbc.update(insertFeedSql, review.getUserId(), timestamp, "REVIEW", "REMOVE", reviewId);
     }
 
     public Optional<Review> getReviewById(long reviewId) {

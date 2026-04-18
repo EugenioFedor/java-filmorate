@@ -83,6 +83,7 @@ public class InMemoryUserStorage implements UserStorage {
         return new HashSet<>(user.getFriends());
     }
 
+    @Override
     public List<Event> getFeed(Long userId) {
         return new ArrayList<>();
     }

@@ -199,6 +199,7 @@ public class UserDbStorage implements UserStorage {
         return event;
     }
 
+    @Override
     public List<Event> getFeed(Long userId) {
         String sql = "SELECT event_id, user_id, timestamp, event_type, operation, entity_id \n" +
                 "FROM feed\n" +
