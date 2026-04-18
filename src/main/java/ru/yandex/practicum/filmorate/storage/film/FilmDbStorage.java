@@ -360,4 +360,13 @@ public class FilmDbStorage implements FilmStorage {
             film.setGenres(genresByFilmId.getOrDefault(film.getId(), Collections.emptySet()));
         }
     }
+
+    @Override
+    public void delete(Long filmId) {
+        int rowsDeleted = jdbcTemplate.update("DELETE FROM films WHERE id = :filmId", Map.of("filmId", filmId));
+
+        if (rowsDeleted == 0) {
+            throw new NotFoundException("Фильм с id " + filmId + " не найден");
+        }
+    }
 }

@@ -108,4 +108,9 @@ public class FilmService {
             film.setGenres(new HashSet<>(sortedGenres));
         }
     }
+
+    public void deleteFilmById(Long filmId) {
+        getById(filmId);
+        filmStorage.delete(filmId);
+    }
 }

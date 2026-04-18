@@ -81,4 +81,17 @@ public class InMemoryUserStorage implements UserStorage {
 
         return new HashSet<>(user.getFriends());
     }
+
+    @Override
+    public void delete(Long userId) {
+        User removed = users.remove(userId);
+
+        if (removed == null) {
+            throw new NotFoundException("User not found");
+        }
+
+        for (User user : users.values()) {
+            user.getFriends().remove(userId);
+        }
+    }
 }

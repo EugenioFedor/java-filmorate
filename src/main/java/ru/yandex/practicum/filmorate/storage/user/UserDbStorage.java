@@ -175,4 +175,13 @@ public class UserDbStorage implements UserStorage {
         return new HashSet<>(jdbcTemplate.query(sql,
                 (rs, rowNum) -> rs.getLong("friend_id"), id));
     }
+
+    @Override
+    public void delete(Long userId) {
+        int rowsDeleted = jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId);
+
+        if (rowsDeleted == 0) {
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
+    }
 }

@@ -97,4 +97,9 @@ public class UserService {
     public Collection<User> getAll() {
         return userStorage.getAll();
     }
+
+    public void deleteUserById(Long userId) {
+        getById(userId);
+        userStorage.delete(userId);
+    }
 }
