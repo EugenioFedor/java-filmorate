@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -12,17 +13,14 @@ import java.time.LocalDate;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class FilmService {
 
     private final UserService userService;
 
     private final FilmStorage filmStorage;
 
-    @Autowired
-    public FilmService(FilmStorage filmStorage, UserService userService) {
-        this.filmStorage = filmStorage;
-        this.userService = userService;
-    }
+    private final DirectorService directorService;
 
     public Film create(Film film) {
         validateFilm(film);
@@ -100,5 +98,16 @@ public class FilmService {
 
             film.setGenres(new HashSet<>(sortedGenres));
         }
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        // Проверка существования режиссёра
+        directorService.getById(directorId);
+
+        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
+            throw new ValidationException("sortBy должен быть 'year' или 'likes'");
+        }
+
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 }

@@ -49,16 +49,12 @@ public class FilmController {
     public List<Film> getMostPopularFilms(@RequestParam(defaultValue = "10") int count,
                                           @RequestParam(required = false) Integer year,
                                           @RequestParam(required = false) Long genreId) {
+        System.out.println("Controller year " + year + " genreId " + genreId);
         return filmService.getMostPopularFilms(count, year, genreId);
     }
 
     @GetMapping("/common")
     public List<Film> getCommonFilms(@RequestParam Long userId, @RequestParam Long friendId) {
         return filmService.getCommonFilms(userId, friendId);
-    }
-
-    @DeleteMapping("/{filmId}")
-    public void deleteFilmById(@PathVariable Long filmId) {
-        filmService.deleteFilmById(filmId);
     }
 }

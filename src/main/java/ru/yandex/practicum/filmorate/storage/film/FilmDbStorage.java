@@ -58,9 +58,11 @@ public class FilmDbStorage implements FilmStorage {
                 keyHolder);
 
         film.setId(keyHolder.getKey().longValue());
+        film.setMpa(getMpa(film.getMpa().getId()));
+
 
         saveGenres(film);
-
+        loadGenres(List.of(film));
         return film;
     }
 
@@ -143,30 +145,40 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getPopular(int count) {
-
-        String sql = """
-                SELECT f.*
+    public List<Film> getMostPopularFilms(int limit, Integer year, Long genreId) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT f.*, mpa.name
                 FROM films f
-                LEFT JOIN (
-                    SELECT film_id, COUNT(user_id) AS likes_count
-                    FROM likes
-                    GROUP BY film_id
-                ) l ON f.id = l.film_id
-                ORDER BY COALESCE(l.likes_count, 0) DESC, f.id ASC
-                LIMIT :count
-                """;
+                JOIN mpa_ratings mpa ON f.mpa_id = mpa.id
+                LEFT JOIN likes l ON f.id = l.film_id
+                WHERE 1=1
+                """);
 
-        List<Film> films = jdbcTemplate.query(sql,
-                Map.of("count", count),
-                this::mapRowToFilm);
+        MapSqlParameterSource params = new MapSqlParameterSource();
 
-        for (Film film : films) {
-            film.setGenres(getGenres(film.getId()));
-            film.setMpa(getMpa(film.getMpa().getId()));
+        if (year != null) {
+            sql.append(" AND EXTRACT(YEAR FROM f.release_date) = :year ");
+            params.addValue("year", year);
         }
 
-        return films;
+        if (genreId != null) {
+            sql.append("""
+                    AND f.id IN (
+                    SELECT fg.film_id
+                    FROM film_genres fg
+                    WHERE fg.genre_id = :genreId
+                    )
+                    """);
+            params.addValue("genreId", genreId);
+        }
+
+        sql.append("""
+                GROUP BY f.id, mpa.name
+                ORDER BY COUNT(l.user_id) DESC, f.id ASC
+                LIMIT :limit
+                """);
+        params.addValue("limit", limit);
+        return jdbcTemplate.query(sql.toString(), params, this::mapRowToFilm);
     }
 
     @Override
@@ -196,6 +208,28 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> findAll() {
         return getAll();
+    }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        String sql = """
+                        SELECT f.*, m.name
+                        FROM films f
+                        JOIN mpa_ratings m ON f.mpa_id = m.id
+                        LEFT JOIN likes l ON f.id = l.film_id
+                        WHERE f.id IN (
+                               SELECT film_id FROM likes WHERE user_id = :userId
+                               INTERSECT
+                               SELECT film_id FROM likes WHERE user_id = :friendId
+                               )
+                        GROUP BY f.id, m.name
+                        ORDER BY COUNT(l.user_id) DESC
+                """;
+        List<Film> films = jdbcTemplate.query(
+                sql, Map.of("userId", userId, "friendId", friendId), this::mapRowToFilm
+        );
+        loadGenres(films);
+        return films;
     }
 
     // ---------- PRIVATE ----------
@@ -278,11 +312,7 @@ public class FilmDbStorage implements FilmStorage {
         film.setDescription(rs.getString("description"));
         film.setReleaseDate(rs.getDate("release_date").toLocalDate());
         film.setDuration(rs.getInt("duration"));
-
-        MpaRating mpa = new MpaRating();
-        mpa.setId(rs.getLong("mpa_id"));
-
-        film.setMpa(mpa);
+        film.setMpa(getMpa(rs.getLong("mpa_id")));
 
         return film;
     }
@@ -303,5 +333,31 @@ public class FilmDbStorage implements FilmStorage {
         mpa.setName(rs.getString("name"));
 
         return mpa;
+    }
+
+    private void loadGenres(List<Film> films) {
+        List<Long> ids = films.stream().map(Film::getId).toList();
+
+        if (ids.isEmpty()) return;
+
+        String getGenresSql = """
+                SELECT fg.film_id, g.id, g.name
+                FROM film_genres fg
+                JOIN genres g ON fg.genre_id = g.id
+                WHERE fg.film_id IN (:ids)
+                """;
+
+        MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+        Map<Long, Set<Genre>> genresByFilmId = new HashMap<>();
+
+        jdbcTemplate.query(getGenresSql, parameters, rs -> {
+            long filmId = rs.getLong("film_id");
+            Genre genre = new Genre(rs.getLong("id"), rs.getString("name"));
+            genresByFilmId.computeIfAbsent(filmId, k -> new HashSet<>()).add(genre);
+        });
+
+        for (Film film : films) {
+            film.setGenres(genresByFilmId.getOrDefault(film.getId(), Collections.emptySet()));
+        }
     }
 }
