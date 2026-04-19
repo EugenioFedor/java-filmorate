@@ -110,4 +110,20 @@ public class FilmService {
             film.setGenres(new HashSet<>(sortedGenres));
         }
     }
+
+    public List<Film> searchFilms(String query, String by) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        if (by == null || by.isBlank()) {
+            throw new ValidationException("Параметр by не должен быть пустым");
+        }
+
+        if (!by.equalsIgnoreCase("title")) {
+            throw new ValidationException("Поддерживается только поиск по title");
+        }
+
+        return filmStorage.searchFilms(query.trim(), by.toLowerCase());
+    }
 }

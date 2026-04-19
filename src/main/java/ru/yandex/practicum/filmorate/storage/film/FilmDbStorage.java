@@ -510,4 +510,24 @@ public class FilmDbStorage implements FilmStorage {
             throw new NotFoundException("Фильм с id " + filmId + " не найден");
         }
     }
+
+    @Override
+    public List<Film> searchFilms(String query, String by) {
+        String sql = """
+            SELECT f.*
+            FROM films f
+            LEFT JOIN likes l ON f.id = l.film_id
+            WHERE LOWER(f.name) LIKE LOWER(:query)
+            GROUP BY f.id
+            ORDER BY COUNT(l.user_id) DESC
+            """;
+
+        Map<String, Object> params = Map.of(
+                "query", "%" + query + "%"
+        );
+
+        List<Film> films = jdbcTemplate.query(sql, params, this::mapRowToFilm);
+        loadGenres(films);
+        return films;
+    }
 }
