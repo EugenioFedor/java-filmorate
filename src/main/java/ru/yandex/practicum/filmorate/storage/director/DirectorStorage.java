@@ -7,8 +7,12 @@ import java.util.Optional;
 
 public interface DirectorStorage {
     List<Director> getAll();
+
     Optional<Director> getById(Long id);
+
     Director create(Director director);
+
     Director update(Director director);
+
     void delete(Long id);
 }

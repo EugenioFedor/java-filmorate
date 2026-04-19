@@ -1,13 +1,14 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -29,6 +30,16 @@ public class UserController {
     @GetMapping
     public Collection<User> getAll() {
         return userService.getAll();
+    }
+
+    @GetMapping("/{id}")
+    public User getById(@PathVariable Long id) {
+        return userService.getById(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteUserById(@PathVariable Long id) {
+        userService.deleteUserById(id);
     }
 
     @PutMapping("/{id}/friends/{friendId}")
@@ -54,5 +65,10 @@ public class UserController {
     @GetMapping("/{id}/recommendations")
     public List<Film> getRecommendations(@PathVariable Long id) {
         return userService.getRecommendations(id);
+    }
+
+    @GetMapping("/{id}/feed")
+    public List<Event> getFeed(@PathVariable Long id) {
+        return userService.getFeed(id);
     }
 }

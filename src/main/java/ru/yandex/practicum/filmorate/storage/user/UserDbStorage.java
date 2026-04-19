@@ -111,14 +111,28 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(Long userId, Long friendId) {
-        String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'CONFIRMED')";
+        String sql = """
+                MERGE INTO friendships (user_id, friend_id, status)
+                KEY (user_id, friend_id)
+                VALUES (?, ?, 'CONFIRMED')
+                """;
         jdbcTemplate.update(sql, userId, friendId);
+
+        jdbcTemplate.update(
+                "INSERT INTO feed (user_id, entity_id, event_type, operation, timestamp) VALUES (?, ?, ?, ?, ?)",
+                userId, friendId, "FRIEND", "ADD", System.currentTimeMillis()
+        );
     }
 
     @Override
     public void removeFriend(Long userId, Long friendId) {
         String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
         jdbcTemplate.update(sql, userId, friendId);
+
+        jdbcTemplate.update(
+                "INSERT INTO feed (user_id, entity_id, event_type, operation, timestamp) VALUES (?, ?, ?, ?, ?)",
+                userId, friendId, "FRIEND", "REMOVE", System.currentTimeMillis()
+        );
     }
 
     @Override
@@ -179,14 +193,14 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<Film> getRecommendations(Long userId) {
         String findSimilarUserSql = """
-            SELECT l2.user_id, COUNT(*) as common_likes
-            FROM likes l1
-            JOIN likes l2 ON l1.film_id = l2.film_id
-            WHERE l1.user_id = ? AND l2.user_id != ?
-            GROUP BY l2.user_id
-            ORDER BY common_likes DESC
-            LIMIT 1
-            """;
+                SELECT l2.user_id, COUNT(*) as common_likes
+                FROM likes l1
+                JOIN likes l2 ON l1.film_id = l2.film_id
+                WHERE l1.user_id = ? AND l2.user_id != ?
+                GROUP BY l2.user_id
+                ORDER BY common_likes DESC
+                LIMIT 1
+                """;
 
         List<Long> similarUsers = jdbcTemplate.query(
                 findSimilarUserSql,
@@ -202,19 +216,20 @@ public class UserDbStorage implements UserStorage {
         Long similarUserId = similarUsers.get(0);
 
         String recommendationsSql = """
-            SELECT f.*, m.name as mpa_name
-            FROM films f
-            JOIN mpa_ratings m ON f.mpa_id = m.id
-            WHERE f.id IN (
-                SELECT film_id
-                FROM likes
-                WHERE user_id = ?
-                EXCEPT
-                SELECT film_id
-                FROM likes
-                WHERE user_id = ?
-            )
-            """;
+                SELECT f.*, m.name as mpa_name
+                FROM films f
+                JOIN mpa_ratings m ON f.mpa_id = m.id
+                WHERE f.id IN (
+                    SELECT film_id
+                    FROM likes
+                    WHERE user_id = ?
+                )
+                AND f.id NOT IN (
+                    SELECT film_id
+                    FROM likes
+                    WHERE user_id = ?
+                )
+                """;
 
         List<Film> recommendations = jdbcTemplate.query(
                 recommendationsSql,
@@ -235,11 +250,11 @@ public class UserDbStorage implements UserStorage {
         List<Long> filmIds = films.stream().map(Film::getId).toList();
 
         String sql = """
-            SELECT fg.film_id, g.id, g.name
-            FROM film_genres fg
-            JOIN genres g ON fg.genre_id = g.id
-            WHERE fg.film_id IN (?)
-            """;
+                SELECT fg.film_id, g.id, g.name
+                FROM film_genres fg
+                JOIN genres g ON fg.genre_id = g.id
+                WHERE fg.film_id IN (?)
+                """;
 
         // Используем простой подход с циклом для совместимости с JdbcTemplate
         Map<Long, Set<Genre>> genresByFilmId = new HashMap<>();
@@ -247,11 +262,11 @@ public class UserDbStorage implements UserStorage {
         for (Long filmId : filmIds) {
             List<Genre> genres = jdbcTemplate.query(
                     """
-                    SELECT g.id, g.name
-                    FROM film_genres fg
-                    JOIN genres g ON fg.genre_id = g.id
-                    WHERE fg.film_id = ?
-                    """,
+                            SELECT g.id, g.name
+                            FROM film_genres fg
+                            JOIN genres g ON fg.genre_id = g.id
+                            WHERE fg.film_id = ?
+                            """,
                     (rs, rowNum) -> {
                         Genre genre = new Genre();
                         genre.setId(rs.getLong("id"));
@@ -278,11 +293,11 @@ public class UserDbStorage implements UserStorage {
         for (Long filmId : filmIds) {
             List<Director> directors = jdbcTemplate.query(
                     """
-                    SELECT d.id, d.name
-                    FROM film_directors fd
-                    JOIN directors d ON fd.director_id = d.id
-                    WHERE fd.film_id = ?
-                    """,
+                            SELECT d.id, d.name
+                            FROM film_directors fd
+                            JOIN directors d ON fd.director_id = d.id
+                            WHERE fd.film_id = ?
+                            """,
                     (rs, rowNum) -> {
                         Director director = new Director();
                         director.setId(rs.getLong("id"));
@@ -332,5 +347,34 @@ public class UserDbStorage implements UserStorage {
         );
     }
 
+    @Override
+    public void delete(Long userId) {
+        String sql = "DELETE FROM users WHERE id = ?";
+        int deleted = jdbcTemplate.update(sql, userId);
 
+        if (deleted == 0) {
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
+    }
+
+    @Override
+    public List<Event> getFeed(Long userId) {
+        String sql = """
+                SELECT event_id, user_id, entity_id, event_type, operation, timestamp
+                FROM feed
+                WHERE user_id = ?
+                ORDER BY timestamp ASC
+                """;
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Event event = new Event();
+            event.setEventId(rs.getLong("event_id"));
+            event.setUserId(rs.getLong("user_id"));
+            event.setEntityId(rs.getLong("entity_id"));
+            event.setEventType(rs.getString("event_type"));
+            event.setOperation(rs.getString("operation"));
+            event.setTimestamp(rs.getLong("timestamp"));
+            return event;
+        }, userId);
+    }
 }

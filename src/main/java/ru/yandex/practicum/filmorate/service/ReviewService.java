@@ -58,7 +58,7 @@ public class ReviewService {
 
     public List<Review> getFilmReviews(Long filmId, int limit) {
         if (filmId == null) {
-            return reviewStorage.getReviews();
+            return reviewStorage.getReviews(limit);
         }
 
         return reviewStorage.getReviewsByFilmId(filmId, limit);
@@ -114,7 +114,7 @@ public class ReviewService {
             throw new ValidationException("Попытка удалить лайк вместо дизлайка.");
         }
 
-        reviewStorage.removeReactionFromReview(reviewId, userId);;
+        reviewStorage.removeReactionFromReview(reviewId, userId);
         log.info("Удален дизлайк на отзыв: {}", review);
     }
 

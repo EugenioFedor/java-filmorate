@@ -70,7 +70,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getCommonFilms(Long userId,Long friendId) {
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
         return List.of();
     }
 
@@ -109,5 +109,10 @@ public class InMemoryFilmStorage implements FilmStorage {
         }
 
         likes.remove(filmId);
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, String by) {
+        return List.of();
     }
 }

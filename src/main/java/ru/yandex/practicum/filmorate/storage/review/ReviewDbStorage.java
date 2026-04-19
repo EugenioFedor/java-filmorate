@@ -46,6 +46,23 @@ public class ReviewDbStorage {
         return review;
     }
 
+    public List<Review> getReviews(int count) {
+        String sql = """
+                SELECT r.*,
+                       COALESCE(SUM(CASE
+                           WHEN rl.is_like = TRUE THEN 1
+                           WHEN rl.is_like = FALSE THEN -1
+                           ELSE 0
+                       END), 0) AS useful_score
+                FROM reviews r
+                LEFT JOIN review_likes rl ON r.id = rl.review_id
+                GROUP BY r.id
+                ORDER BY useful_score DESC, r.id ASC
+                LIMIT ?
+                """;
+        return findMany(sql, count);
+    }
+
     public Review updateReview(Review review) {
         String sql = """
                 UPDATE reviews SET
@@ -99,13 +116,16 @@ public class ReviewDbStorage {
     public List<Review> getReviewsByFilmId(long filmId, int count) {
         String sql = """
                 SELECT r.*,
-                COALESCE(SUM (CASE WHEN rl.is_like = TRUE THEN 1
-                WHEN rl.is_like = FALSE THEN -1 ELSE 0 END),0) AS useful_score
+                       COALESCE(SUM(CASE
+                           WHEN rl.is_like = TRUE THEN 1
+                           WHEN rl.is_like = FALSE THEN -1
+                           ELSE 0
+                       END), 0) AS useful_score
                 FROM reviews r
                 LEFT JOIN review_likes rl ON r.id = rl.review_id
-                WHERE film_id=?
+                WHERE r.film_id = ?
                 GROUP BY r.id
-                ORDER BY useful DESC, id ASC
+                ORDER BY useful_score DESC, r.id ASC
                 LIMIT ?
                 """;
         return findMany(sql, filmId, count);
@@ -114,12 +134,15 @@ public class ReviewDbStorage {
     public List<Review> getReviews() {
         String sql = """
                 SELECT r.*,
-                COALESCE(SUM (CASE WHEN rl.is_like = TRUE THEN 1
-                WHEN rl.is_like = FALSE THEN -1 ELSE 0 END),0) AS useful_score
+                       COALESCE(SUM(CASE
+                           WHEN rl.is_like = TRUE THEN 1
+                           WHEN rl.is_like = FALSE THEN -1
+                           ELSE 0
+                       END), 0) AS useful_score
                 FROM reviews r
                 LEFT JOIN review_likes rl ON r.id = rl.review_id
                 GROUP BY r.id
-                ORDER BY useful DESC, id ASC
+                ORDER BY useful_score DESC, r.id ASC
                 """;
         return findMany(sql);
     }

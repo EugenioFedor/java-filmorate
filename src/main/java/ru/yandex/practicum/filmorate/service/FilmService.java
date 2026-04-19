@@ -10,6 +10,7 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -120,8 +121,18 @@ public class FilmService {
             throw new ValidationException("Параметр by не должен быть пустым");
         }
 
-        if (!by.equalsIgnoreCase("title")) {
-            throw new ValidationException("Поддерживается только поиск по title");
+        Set<String> searchParams = Arrays.stream(by.toLowerCase().split(","))
+                .map(String::trim)
+                .filter(param -> !param.isBlank())
+                .collect(Collectors.toSet());
+
+        if (searchParams.isEmpty()) {
+            throw new ValidationException("Параметр by не должен быть пустым");
+        }
+
+        if (!searchParams.stream().allMatch(param ->
+                param.equals("title") || param.equals("director"))) {
+            throw new ValidationException("Параметр by может содержать только title и/или director");
         }
 
         return filmStorage.searchFilms(query.trim(), by.toLowerCase());

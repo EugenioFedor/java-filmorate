@@ -51,9 +51,9 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         String sql = """
-            INSERT INTO films (name, description, release_date, duration, mpa_id)
-            VALUES (:name, :description, :releaseDate, :duration, :mpaId)
-            """;
+                INSERT INTO films (name, description, release_date, duration, mpa_id)
+                VALUES (:name, :description, :releaseDate, :duration, :mpaId)
+                """;
 
         Map<String, Object> params = Map.of(
                 "name", film.getName(),
@@ -98,14 +98,14 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         String sql = """
-            UPDATE films
-            SET name=:name,
-                description=:description,
-                release_date=:releaseDate,
-                duration=:duration,
-                mpa_id=:mpaId
-            WHERE id=:id
-            """;
+                UPDATE films
+                SET name=:name,
+                    description=:description,
+                    release_date=:releaseDate,
+                    duration=:duration,
+                    mpa_id=:mpaId
+                WHERE id=:id
+                """;
 
         Map<String, Object> params = Map.of(
                 "name", film.getName(),
@@ -180,11 +180,15 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getMostPopularFilms(int limit, Integer year, Long genreId) {
         StringBuilder sql = new StringBuilder("""
-                SELECT f.*, mpa.name
+                SELECT f.id,
+                       f.name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       f.mpa_id
                 FROM films f
-                JOIN mpa_ratings mpa ON f.mpa_id = mpa.id
                 LEFT JOIN likes l ON f.id = l.film_id
-                WHERE 1=1
+                WHERE 1 = 1
                 """);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -196,44 +200,71 @@ public class FilmDbStorage implements FilmStorage {
 
         if (genreId != null) {
             sql.append("""
-                    AND f.id IN (
-                    SELECT fg.film_id
-                    FROM film_genres fg
-                    WHERE fg.genre_id = :genreId
+                    AND EXISTS (
+                        SELECT 1
+                        FROM film_genres fg
+                        WHERE fg.film_id = f.id
+                          AND fg.genre_id = :genreId
                     )
                     """);
             params.addValue("genreId", genreId);
         }
 
         sql.append("""
-                GROUP BY f.id, mpa.name
+                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
                 ORDER BY COUNT(l.user_id) DESC, f.id ASC
                 LIMIT :limit
                 """);
+
         params.addValue("limit", limit);
-        return jdbcTemplate.query(sql.toString(), params, this::mapRowToFilm);
+
+        List<Film> films = jdbcTemplate.query(sql.toString(), params, this::mapRowToFilm);
+        loadGenres(films);
+        loadDirectors(films);
+
+        return films;
     }
 
     @Override
     public void addLike(Long filmId, Long userId) {
-
         jdbcTemplate.update(
-                "INSERT INTO likes (film_id, user_id) VALUES (:filmId, :userId)",
+                """
+                        MERGE INTO likes (film_id, user_id)
+                        KEY (film_id, user_id)
+                        VALUES (:filmId, :userId)
+                        """,
                 Map.of(
                         "filmId", filmId,
                         "userId", userId
+                )
+        );
+
+        jdbcTemplate.update(
+                "INSERT INTO feed (user_id, entity_id, event_type, operation, timestamp) VALUES (:userId, :filmId, 'LIKE', 'ADD', :ts)",
+                Map.of(
+                        "userId", userId,
+                        "filmId", filmId,
+                        "ts", System.currentTimeMillis()
                 )
         );
     }
 
     @Override
     public void removeLike(Long filmId, Long userId) {
-
         jdbcTemplate.update(
                 "DELETE FROM likes WHERE film_id = :filmId AND user_id = :userId",
                 Map.of(
                         "filmId", filmId,
                         "userId", userId
+                )
+        );
+
+        jdbcTemplate.update(
+                "INSERT INTO feed (user_id, entity_id, event_type, operation, timestamp) VALUES (:userId, :filmId, 'LIKE', 'REMOVE', :ts)",
+                Map.of(
+                        "userId", userId,
+                        "filmId", filmId,
+                        "ts", System.currentTimeMillis()
                 )
         );
     }
@@ -246,26 +277,34 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         String sql = """
-                        SELECT f.*, m.name
-                        FROM films f
-                        JOIN mpa_ratings m ON f.mpa_id = m.id
-                        LEFT JOIN likes l ON f.id = l.film_id
-                        WHERE f.id IN (
-                               SELECT film_id FROM likes WHERE user_id = :userId
-                               INTERSECT
-                               SELECT film_id FROM likes WHERE user_id = :friendId
-                               )
-                        GROUP BY f.id, m.name
-                        ORDER BY COUNT(l.user_id) DESC
+                SELECT f.id,
+                       f.name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       f.mpa_id
+                FROM films f
+                LEFT JOIN likes l ON f.id = l.film_id
+                WHERE f.id IN (
+                       SELECT film_id FROM likes WHERE user_id = :userId
+                       INTERSECT
+                       SELECT film_id FROM likes WHERE user_id = :friendId
+                )
+                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
+                ORDER BY COUNT(l.user_id) DESC, f.id ASC
                 """;
+
         List<Film> films = jdbcTemplate.query(
-                sql, Map.of("userId", userId, "friendId", friendId), this::mapRowToFilm
+                sql,
+                Map.of("userId", userId, "friendId", friendId),
+                this::mapRowToFilm
         );
+
         loadGenres(films);
+        loadDirectors(films);
+
         return films;
     }
-
-    // ---------- PRIVATE ----------
 
     private void saveGenres(Film film) {
 
@@ -416,11 +455,11 @@ public class FilmDbStorage implements FilmStorage {
     private Set<Director> getDirectors(Long filmId) {
         List<Director> directors = jdbcTemplate.query(
                 """
-                SELECT d.id, d.name
-                FROM film_directors fd
-                JOIN directors d ON fd.director_id = d.id
-                WHERE fd.film_id = :filmId
-                """,
+                        SELECT d.id, d.name
+                        FROM film_directors fd
+                        JOIN directors d ON fd.director_id = d.id
+                        WHERE fd.film_id = :filmId
+                        """,
                 Map.of("filmId", filmId),
                 this::mapRowToDirector
         );
@@ -437,11 +476,11 @@ public class FilmDbStorage implements FilmStorage {
         if (ids.isEmpty()) return;
 
         String getDirectorsSql = """
-            SELECT fd.film_id, d.id, d.name
-            FROM film_directors fd
-            JOIN directors d ON fd.director_id = d.id
-            WHERE fd.film_id IN (:ids)
-            """;
+                SELECT fd.film_id, d.id, d.name
+                FROM film_directors fd
+                JOIN directors d ON fd.director_id = d.id
+                WHERE fd.film_id IN (:ids)
+                """;
 
         MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
         Map<Long, Set<Director>> directorsByFilmId = new HashMap<>();
@@ -477,18 +516,24 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
-        String orderBy = sortBy.equals("year") ? "f.release_date" : "COUNT(l.user_id) DESC";
+        String orderBy = sortBy.equals("year")
+                ? "f.release_date ASC, f.id ASC"
+                : "COUNT(l.user_id) DESC, f.id ASC";
 
         String sql = String.format("""
-            SELECT f.*, m.name as mpa_name
-            FROM films f
-            JOIN mpa_ratings m ON f.mpa_id = m.id
-            JOIN film_directors fd ON f.id = fd.film_id
-            LEFT JOIN likes l ON f.id = l.film_id
-            WHERE fd.director_id = :directorId
-            GROUP BY f.id, m.name
-            ORDER BY %s
-            """, orderBy);
+                SELECT f.id,
+                       f.name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       f.mpa_id
+                FROM films f
+                JOIN film_directors fd ON f.id = fd.film_id
+                LEFT JOIN likes l ON f.id = l.film_id
+                WHERE fd.director_id = :directorId
+                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
+                ORDER BY %s
+                """, orderBy);
 
         List<Film> films = jdbcTemplate.query(
                 sql,
@@ -513,14 +558,35 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> searchFilms(String query, String by) {
+        Set<String> searchParams = Arrays.stream(by.toLowerCase().split(","))
+                .map(String::trim)
+                .collect(Collectors.toSet());
+
+        List<String> conditions = new ArrayList<>();
+
+        if (searchParams.contains("title")) {
+            conditions.add("LOWER(f.name) LIKE LOWER(:query)");
+        }
+
+        if (searchParams.contains("director")) {
+            conditions.add("LOWER(d.name) LIKE LOWER(:query)");
+        }
+
         String sql = """
-            SELECT f.*
-            FROM films f
-            LEFT JOIN likes l ON f.id = l.film_id
-            WHERE LOWER(f.name) LIKE LOWER(:query)
-            GROUP BY f.id
-            ORDER BY COUNT(l.user_id) DESC
-            """;
+                SELECT f.id,
+                       f.name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       f.mpa_id
+                FROM films f
+                LEFT JOIN film_directors fd ON f.id = fd.film_id
+                LEFT JOIN directors d ON fd.director_id = d.id
+                LEFT JOIN likes l ON f.id = l.film_id
+                WHERE %s
+                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
+                ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id ASC
+                """.formatted(String.join(" OR ", conditions));
 
         Map<String, Object> params = Map.of(
                 "query", "%" + query + "%"
@@ -528,6 +594,8 @@ public class FilmDbStorage implements FilmStorage {
 
         List<Film> films = jdbcTemplate.query(sql, params, this::mapRowToFilm);
         loadGenres(films);
+        loadDirectors(films);
+
         return films;
     }
 }

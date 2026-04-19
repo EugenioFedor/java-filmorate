@@ -4,16 +4,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +23,6 @@ public class UserService {
     private final UserStorage userStorage;
 
     public User create(User user) {
-
         if (user.getEmail() == null || !user.getEmail().contains("@")) {
             throw new ValidationException("Invalid email");
         }
@@ -46,7 +46,7 @@ public class UserService {
         return userStorage.update(user);
     }
 
-    public Collection<User> findAll() {
+    public Collection<User> getAll() {
         return userStorage.getAll();
     }
 
@@ -55,48 +55,39 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
+    public void deleteUserById(Long id) {
+        getById(id);
+        userStorage.delete(id);
+    }
+
     public void addFriend(Long id, Long friendId) {
-
-        userStorage.getById(id)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        userStorage.getById(friendId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
+        getById(id);
+        getById(friendId);
         userStorage.addFriend(id, friendId);
     }
 
     public void removeFriend(Long id, Long friendId) {
-
         getById(id);
         getById(friendId);
-
         userStorage.removeFriend(id, friendId);
     }
 
     public List<User> getFriends(Long id) {
-
         getById(id);
-
-        return userStorage.getFriendsIds(id).stream()
-                .map(this::getById)
-                .toList();
+        return new ArrayList<>(userStorage.getFriends(id));
     }
 
     public List<User> getCommonFriends(Long id, Long otherId) {
+        getById(id);
+        getById(otherId);
 
         Set<Long> friends1 = userStorage.getFriendsIds(id);
         Set<Long> friends2 = userStorage.getFriendsIds(otherId);
 
         return friends1.stream()
                 .filter(friends2::contains)
-                .map(friendId -> userStorage.getById(friendId)
-                        .orElseThrow(() -> new NotFoundException("User not found")))
+                .map(this::getById)
                 .collect(Collectors.toList());
-    }
-
-    public Collection<User> getAll() {
-        return userStorage.getAll();
     }
 
     public List<Film> getRecommendations(Long userId) {
@@ -104,4 +95,8 @@ public class UserService {
         return userStorage.getRecommendations(userId);
     }
 
+    public List<Event> getFeed(Long userId) {
+        getById(userId);
+        return userStorage.getFeed(userId);
+    }
 }
