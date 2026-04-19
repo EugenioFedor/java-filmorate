@@ -17,11 +17,20 @@ public class Film {
     private int duration;
     private Set<Genre> genres = new LinkedHashSet<>();
     private MpaRating mpa;
+    private Set<Director> directors = new LinkedHashSet<>();
 
     public void setGenres(Set<Genre> genres) {
         if (genres != null) {
             this.genres = genres.stream()
                     .sorted(Comparator.comparingLong(Genre::getId))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+    }
+
+    public void setDirectors(Set<Director> directors) {
+        if (directors != null) {
+            this.directors = directors.stream()
+                    .sorted(Comparator.comparingLong(Director::getId))
                     .collect(Collectors.toCollection(LinkedHashSet::new));
         }
     }

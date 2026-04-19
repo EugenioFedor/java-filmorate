@@ -32,7 +32,6 @@ public class DirectorService {
     public Director update(Director director) {
         validateDirector(director);
 
-        // Проверка существования
         directorStorage.getById(director.getId())
                 .orElseThrow(() -> new NotFoundException("Режиссёр с id " + director.getId() + " не найден"));
 

@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -16,10 +15,8 @@ import java.util.*;
 @RequiredArgsConstructor
 public class FilmService {
 
-    private final UserService userService;
-
     private final FilmStorage filmStorage;
-
+    private final UserService userService;
     private final DirectorService directorService;
 
     public Film create(Film film) {
@@ -33,10 +30,6 @@ public class FilmService {
         Film existingFilm = filmStorage.getById(film.getId())
                 .orElseThrow(() -> new NotFoundException("Фильм не найден"));
 
-        if (existingFilm == null) {
-            throw new NotFoundException("Фильм не найден");
-        }
-
         return filmStorage.update(film);
     }
 
@@ -45,14 +38,8 @@ public class FilmService {
     }
 
     public Film getById(Long id) {
-        Film film = filmStorage.getById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм не найден"));
-
-        if (film == null) {
-            throw new NotFoundException("Фильм с id " + id + " не найден");
-        }
-
-        return film;
+        return filmStorage.getById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден"));
     }
 
     public void addLike(Long filmId, Long userId) {
@@ -67,8 +54,34 @@ public class FilmService {
         filmStorage.removeLike(filmId, userId);
     }
 
-    public List<Film> getPopular(int count) {
-        return filmStorage.getPopular(count);
+    public List<Film> getMostPopularFilms(int count, Integer year, Long genreId) {
+        return filmStorage.getMostPopularFilms(count, year, genreId);
+    }
+
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        if (userId == null || friendId == null) {
+            return List.of();
+        }
+
+        userService.getById(userId);
+        userService.getById(friendId);
+        return filmStorage.getCommonFilms(userId, friendId);
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        // Проверка существования режиссёра
+        directorService.getById(directorId);
+
+        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
+            throw new ValidationException("sortBy должен быть 'year' или 'likes'");
+        }
+
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
+    }
+
+    public void deleteFilmById(Long filmId) {
+        getById(filmId);
+        filmStorage.delete(filmId);
     }
 
     private void validateFilm(Film film) {
@@ -92,22 +105,9 @@ public class FilmService {
         }
 
         if (film.getGenres() != null) {
-
             Set<Genre> sortedGenres = new TreeSet<>(Comparator.comparing(Genre::getId));
             sortedGenres.addAll(film.getGenres());
-
             film.setGenres(new HashSet<>(sortedGenres));
         }
-    }
-
-    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
-        // Проверка существования режиссёра
-        directorService.getById(directorId);
-
-        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
-            throw new ValidationException("sortBy должен быть 'year' или 'likes'");
-        }
-
-        return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 }

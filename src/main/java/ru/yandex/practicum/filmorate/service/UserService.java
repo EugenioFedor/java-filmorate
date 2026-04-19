@@ -101,7 +101,6 @@ public class UserService {
 
     public List<Film> getRecommendations(Long userId) {
         getById(userId);
-
         return userStorage.getRecommendations(userId);
     }
 

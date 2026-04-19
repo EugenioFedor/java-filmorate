@@ -1,12 +1,14 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
@@ -18,6 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
+@Primary
 @Repository
 public class FilmDbStorage implements FilmStorage {
 
@@ -38,10 +41,19 @@ public class FilmDbStorage implements FilmStorage {
             }
         }
 
+        // ← ДОБАВИТЬ: проверка режиссёров
+        if (film.getDirectors() != null) {
+            for (Director director : film.getDirectors()) {
+                if (!directorExists(director.getId())) {
+                    throw new NotFoundException("Director with id " + director.getId() + " not found");
+                }
+            }
+        }
+
         String sql = """
-                INSERT INTO films (name, description, release_date, duration, mpa_id)
-                VALUES (:name, :description, :releaseDate, :duration, :mpaId)
-                """;
+            INSERT INTO films (name, description, release_date, duration, mpa_id)
+            VALUES (:name, :description, :releaseDate, :duration, :mpaId)
+            """;
 
         Map<String, Object> params = Map.of(
                 "name", film.getName(),
@@ -60,9 +72,12 @@ public class FilmDbStorage implements FilmStorage {
         film.setId(keyHolder.getKey().longValue());
         film.setMpa(getMpa(film.getMpa().getId()));
 
-
         saveGenres(film);
+        saveDirectors(film);  // ← ДОБАВИТЬ
+
         loadGenres(List.of(film));
+        loadDirectors(List.of(film));  // ← ДОБАВИТЬ
+
         return film;
     }
 
@@ -73,15 +88,24 @@ public class FilmDbStorage implements FilmStorage {
             throw new NotFoundException("MPA not found");
         }
 
+        // ← ДОБАВИТЬ: проверка режиссёров
+        if (film.getDirectors() != null) {
+            for (Director director : film.getDirectors()) {
+                if (!directorExists(director.getId())) {
+                    throw new NotFoundException("Director with id " + director.getId() + " not found");
+                }
+            }
+        }
+
         String sql = """
-                UPDATE films
-                SET name=:name,
-                    description=:description,
-                    release_date=:releaseDate,
-                    duration=:duration,
-                    mpa_id=:mpaId
-                WHERE id=:id
-                """;
+            UPDATE films
+            SET name=:name,
+                description=:description,
+                release_date=:releaseDate,
+                duration=:duration,
+                mpa_id=:mpaId
+            WHERE id=:id
+            """;
 
         Map<String, Object> params = Map.of(
                 "name", film.getName(),
@@ -103,7 +127,14 @@ public class FilmDbStorage implements FilmStorage {
                 Map.of("id", film.getId())
         );
 
+        // ← ДОБАВИТЬ: удаление старых режиссёров
+        jdbcTemplate.update(
+                "DELETE FROM film_directors WHERE film_id = :id",
+                Map.of("id", film.getId())
+        );
+
         saveGenres(film);
+        saveDirectors(film);  // ← ДОБАВИТЬ
 
         return getById(film.getId()).orElseThrow();
     }
@@ -118,6 +149,7 @@ public class FilmDbStorage implements FilmStorage {
         for (Film film : films) {
             film.setGenres(getGenres(film.getId()));
             film.setMpa(getMpa(film.getMpa().getId()));
+            film.setDirectors(getDirectors(film.getId()));
         }
 
         return films;
@@ -140,6 +172,7 @@ public class FilmDbStorage implements FilmStorage {
 
         film.setGenres(getGenres(id));
         film.setMpa(getMpa(film.getMpa().getId()));
+        film.setDirectors(getDirectors(id));
 
         return Optional.of(film);
     }
@@ -358,6 +391,123 @@ public class FilmDbStorage implements FilmStorage {
 
         for (Film film : films) {
             film.setGenres(genresByFilmId.getOrDefault(film.getId(), Collections.emptySet()));
+        }
+    }
+
+    private void saveDirectors(Film film) {
+        if (film.getDirectors() == null) return;
+
+        Set<Long> uniqueDirectors = new HashSet<>();
+
+        for (Director director : film.getDirectors()) {
+            if (uniqueDirectors.add(director.getId())) {
+                jdbcTemplate.update(
+                        "INSERT INTO film_directors (film_id, director_id) VALUES (:filmId, :directorId)",
+                        Map.of(
+                                "filmId", film.getId(),
+                                "directorId", director.getId()
+                        )
+                );
+            }
+        }
+    }
+
+    // Метод для получения режиссёров одного фильма
+    private Set<Director> getDirectors(Long filmId) {
+        List<Director> directors = jdbcTemplate.query(
+                """
+                SELECT d.id, d.name
+                FROM film_directors fd
+                JOIN directors d ON fd.director_id = d.id
+                WHERE fd.film_id = :filmId
+                """,
+                Map.of("filmId", filmId),
+                this::mapRowToDirector
+        );
+
+        return directors.stream()
+                .sorted(Comparator.comparing(Director::getId))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    // Метод для загрузки режиссёров для списка фильмов (оптимизация N+1)
+    private void loadDirectors(List<Film> films) {
+        List<Long> ids = films.stream().map(Film::getId).toList();
+
+        if (ids.isEmpty()) return;
+
+        String getDirectorsSql = """
+            SELECT fd.film_id, d.id, d.name
+            FROM film_directors fd
+            JOIN directors d ON fd.director_id = d.id
+            WHERE fd.film_id IN (:ids)
+            """;
+
+        MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+        Map<Long, Set<Director>> directorsByFilmId = new HashMap<>();
+
+        jdbcTemplate.query(getDirectorsSql, parameters, rs -> {
+            long filmId = rs.getLong("film_id");
+            Director director = new Director(rs.getLong("id"), rs.getString("name"));
+            directorsByFilmId.computeIfAbsent(filmId, k -> new HashSet<>()).add(director);
+        });
+
+        for (Film film : films) {
+            film.setDirectors(directorsByFilmId.getOrDefault(film.getId(), Collections.emptySet()));
+        }
+    }
+
+    // Маппер для режиссёра
+    private Director mapRowToDirector(ResultSet rs, int rowNum) throws SQLException {
+        Director director = new Director();
+        director.setId(rs.getLong("id"));
+        director.setName(rs.getString("name"));
+        return director;
+    }
+
+    // Проверка существования режиссёра
+    private boolean directorExists(Long id) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM directors WHERE id = :id",
+                Map.of("id", id),
+                Integer.class
+        );
+        return count != null && count > 0;
+    }
+
+    @Override
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        String orderBy = sortBy.equals("year") ? "f.release_date" : "COUNT(l.user_id) DESC";
+
+        String sql = String.format("""
+            SELECT f.*, m.name as mpa_name
+            FROM films f
+            JOIN mpa_ratings m ON f.mpa_id = m.id
+            JOIN film_directors fd ON f.id = fd.film_id
+            LEFT JOIN likes l ON f.id = l.film_id
+            WHERE fd.director_id = :directorId
+            GROUP BY f.id, m.name
+            ORDER BY %s
+            """, orderBy);
+
+        List<Film> films = jdbcTemplate.query(
+                sql,
+                Map.of("directorId", directorId),
+                this::mapRowToFilm
+        );
+
+        loadGenres(films);
+        loadDirectors(films);
+
+        return films;
+    }
+
+    @Override
+    public void delete(Long filmId) {
+        int rowsDeleted = jdbcTemplate.update("DELETE FROM films WHERE id = :filmId", Map.of("filmId", filmId));
+
+        if (rowsDeleted == 0) {
+            throw new NotFoundException("Фильм с id " + filmId + " не найден");
         }
     }
 }
