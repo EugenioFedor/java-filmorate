@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -36,16 +37,23 @@ public class ErrorHandler {
         return new ErrorResponse("Произошла непредвиденная ошибка");
     }
 
-    @ExceptionHandler
+    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationException(MethodArgumentNotValidException e) {
+    public Map<String, String> handleValidationException(Exception e) {
         Map<String, String> errors = new HashMap<>();
-        e.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMsg = error.getDefaultMessage();
-            log.warn("Ошибка валидации {}: {}", fieldName, errorMsg);
-            errors.put(fieldName, errorMsg);
-        });
+
+        if (e instanceof MethodArgumentNotValidException ex) {
+            ex.getBindingResult().getAllErrors().forEach((error) -> {
+                String fieldName = ((FieldError) error).getField();
+                String errorMsg = error.getDefaultMessage();
+                log.warn("Ошибка валидации {}: {}", fieldName, errorMsg);
+                errors.put(fieldName, errorMsg);
+            });
+        } else if (e instanceof HttpMessageNotReadableException) {
+            String errorMsg = "Некорректный формат JSON или неверные типы данных";
+            errors.put("error", errorMsg);
+            log.warn("Ошибка валидации: {}", errorMsg);
+        }
 
         return errors;
     }

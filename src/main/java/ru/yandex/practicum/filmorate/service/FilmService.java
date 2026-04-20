@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
@@ -70,14 +71,13 @@ public class FilmService {
     }
 
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
-        // Проверка существования режиссёра
-        directorService.getById(directorId);
+        Director director = directorService.getById(directorId);
 
         if (!sortBy.equals("year") && !sortBy.equals("likes")) {
             throw new ValidationException("sortBy должен быть 'year' или 'likes'");
         }
 
-        return filmStorage.getFilmsByDirector(directorId, sortBy);
+        return filmStorage.getFilmsByDirector(director.getId(), sortBy);
     }
 
     public void deleteFilmById(Long filmId) {

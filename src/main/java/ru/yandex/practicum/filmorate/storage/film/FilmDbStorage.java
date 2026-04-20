@@ -270,11 +270,6 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public Collection<Film> findAll() {
-        return getAll();
-    }
-
-    @Override
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         String sql = """
                 SELECT f.id,
