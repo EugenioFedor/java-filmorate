@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,12 +25,20 @@ class UserDbStorageTest {
     @Test
     void testFindUserById() {
 
+        User user = new User();
+        user.setLogin("test-login");
+        user.setEmail("test@test.com");
+        user.setName("Test User");
+        user.setBirthday(LocalDate.parse("2000-01-01"));
+        userStorage.create(user);
         Optional<User> userOptional = userStorage.getById(1L);
 
         assertThat(userOptional)
                 .isPresent()
-                .hasValueSatisfying(user ->
-                        assertThat(user).hasFieldOrPropertyWithValue("id", 1L)
-                );
+                .hasValueSatisfying(u -> {
+                    assertThat(u).hasFieldOrPropertyWithValue("id", 1L);
+                    assertThat(u).hasFieldOrPropertyWithValue("login", "test-login");
+                    assertThat(u).hasFieldOrPropertyWithValue("name", "Test User");
+                });
     }
 }
