@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.storage.director;
+package ru.yandex.practicum.filmorate.storage;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -19,20 +19,18 @@ import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
-public class DirectorDbStorage implements DirectorStorage {
+public class DirectorDbStorage {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final RowMapper<Director> mapper = this::mapRowToDirector;
 
-    @Override
     public List<Director> getAll() {
         String sql = "SELECT * FROM directors ORDER BY id";
         return jdbcTemplate.query(sql, mapper);
     }
 
-    @Override
     public Optional<Director> getById(Long id) {
-        String sql = "SELECT * FROM directors WHERE id =:id";
+        String sql = "SELECT * FROM directors WHERE id = :id";
         try {
             Director director = jdbcTemplate.queryForObject(sql, Map.of("id",id), mapper);
             return Optional.ofNullable(director);
@@ -41,7 +39,6 @@ public class DirectorDbStorage implements DirectorStorage {
         }
     }
 
-    @Override
     public Director create(Director director) {
         String sql = "INSERT INTO directors (name) VALUES (:name)";
 
@@ -63,7 +60,6 @@ public class DirectorDbStorage implements DirectorStorage {
         return director;
     }
 
-    @Override
     public Director update(Director director) {
         String sql = "UPDATE directors SET name =:name WHERE id =:id";
 
@@ -78,7 +74,6 @@ public class DirectorDbStorage implements DirectorStorage {
         return director;
     }
 
-    @Override
     public void delete(Long id) {
         String sql = "DELETE FROM directors WHERE id =:id";
 

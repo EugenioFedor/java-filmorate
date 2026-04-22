@@ -67,10 +67,10 @@ public class FilmControllerTest {
         film3.setReleaseDate(LocalDate.of(1999, 3, 15));
         film3.setDuration(136);
 
-        Film storedFilm1 = filmService.create(film1);
-        Film storedFilm2 = filmService.create(film2);
-        Film storedFilm3 = filmService.create(film3);
-        System.out.println("storedFilm2: " + storedFilm2);
+        Film storedFilm1 = filmService.addFilm(film1);
+        Film storedFilm2 = filmService.addFilm(film2);
+        Film storedFilm3 = filmService.addFilm(film3);
+
         User user1 = new User();
         user1.setLogin("user1-login");
         user1.setEmail("user1@mail.com");
@@ -128,9 +128,9 @@ public class FilmControllerTest {
         film3.setReleaseDate(LocalDate.of(1999, 3, 15));
         film3.setDuration(136);
 
-        Film storedFilm1 = filmService.create(film1);
-        Film storedFilm2 = filmService.create(film2);
-        Film storedFilm3 = filmService.create(film3);
+        Film storedFilm1 = filmService.addFilm(film1);
+        Film storedFilm2 = filmService.addFilm(film2);
+        Film storedFilm3 = filmService.addFilm(film3);
         System.out.println("storedFilm2: " + storedFilm2);
         User user1 = new User();
         user1.setLogin("user1-login");
