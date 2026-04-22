@@ -6,7 +6,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
 
 import java.util.List;
@@ -38,7 +37,7 @@ public class BaseDbStorage<T> {
 
     protected long insert(String query, Map<String, ?> params) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
-        jdbc.update(query,new MapSqlParameterSource(params), keyHolder,new String[]{"id"});
+        jdbc.update(query, new MapSqlParameterSource(params), keyHolder, new String[]{"id"});
         Long id = keyHolder.getKeyAs(Long.class);
 
         if (id == null) {
@@ -54,11 +53,11 @@ public class BaseDbStorage<T> {
                 """;
 
         Map<String, ?> feedParams = Map.of(
-                "userId",userId,
-                "timestamp",System.currentTimeMillis(),
-                "eventType",eventType,
-                "operation",operation,
-                "entityId",entityId
+                "userId", userId,
+                "timestamp", System.currentTimeMillis(),
+                "eventType", eventType,
+                "operation", operation,
+                "entityId", entityId
         );
 
         jdbc.update(insertFeedSql, feedParams);
