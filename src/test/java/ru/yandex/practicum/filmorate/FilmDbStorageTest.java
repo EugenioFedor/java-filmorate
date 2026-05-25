@@ -8,7 +8,8 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MpaRating;
-import ru.yandex.practicum.filmorate.storage.film.FilmDbStorage;
+import ru.yandex.practicum.filmorate.storage.FilmDbStorage;
+import ru.yandex.practicum.filmorate.storage.mapper.FilmRowMapper;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -17,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import(FilmDbStorage.class)
+@Import({FilmDbStorage.class, FilmRowMapper.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmDbStorageTest {
 
@@ -40,7 +41,7 @@ class FilmDbStorageTest {
 
         Film savedFilm = filmStorage.create(film);
 
-        Optional<Film> filmOptional = filmStorage.getById(savedFilm.getId());
+        Optional<Film> filmOptional = filmStorage.getFilmById(savedFilm.getId());
 
         assertThat(filmOptional)
                 .isPresent()

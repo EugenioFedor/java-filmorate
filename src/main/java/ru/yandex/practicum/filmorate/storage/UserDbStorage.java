@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.storage.user;
+package ru.yandex.practicum.filmorate.storage;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -19,13 +19,12 @@ import java.util.*;
 @Repository
 @Primary
 @RequiredArgsConstructor
-public class UserDbStorage implements UserStorage {
+public class UserDbStorage {
 
     private final JdbcTemplate jdbcTemplate;
 
     private final RowMapper<User> userMapper = this::mapRowToUser;
 
-    @Override
     public User create(User user) {
 
         String sql = """
@@ -60,7 +59,6 @@ public class UserDbStorage implements UserStorage {
         return user;
     }
 
-    @Override
     public User update(User user) {
         String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE id = ?";
 
@@ -90,13 +88,11 @@ public class UserDbStorage implements UserStorage {
         return user;
     }
 
-    @Override
     public Collection<User> getAll() {
         String sql = "SELECT * FROM users";
         return jdbcTemplate.query(sql, userMapper);
     }
 
-    @Override
     public Optional<User> getById(Long id) {
         String sql = "SELECT * FROM users WHERE id = ?";
 
@@ -109,7 +105,6 @@ public class UserDbStorage implements UserStorage {
         return Optional.of(users.get(0));
     }
 
-    @Override
     public void addFriend(Long userId, Long friendId) {
         String sql = """
                 MERGE INTO friendships (user_id, friend_id, status)
@@ -124,7 +119,6 @@ public class UserDbStorage implements UserStorage {
         );
     }
 
-    @Override
     public void removeFriend(Long userId, Long friendId) {
         String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
         jdbcTemplate.update(sql, userId, friendId);
@@ -135,7 +129,6 @@ public class UserDbStorage implements UserStorage {
         );
     }
 
-    @Override
     public Collection<User> getFriends(Long userId) {
         String sql = """
                 SELECT u.*
@@ -147,7 +140,6 @@ public class UserDbStorage implements UserStorage {
         return jdbcTemplate.query(sql, userMapper, userId);
     }
 
-    @Override
     public Collection<User> getCommonFriends(Long userId, Long otherId) {
         String sql = """
                 SELECT u.*
@@ -177,7 +169,6 @@ public class UserDbStorage implements UserStorage {
         return user;
     }
 
-    @Override
     public Set<Long> getFriendsIds(Long id) {
 
         String sql = """
@@ -190,7 +181,6 @@ public class UserDbStorage implements UserStorage {
                 (rs, rowNum) -> rs.getLong("friend_id"), id));
     }
 
-    @Override
     public List<Film> getRecommendations(Long userId) {
         String findSimilarUserSql = """
                 SELECT l2.user_id, COUNT(*) as common_likes
@@ -347,7 +337,6 @@ public class UserDbStorage implements UserStorage {
         );
     }
 
-    @Override
     public void delete(Long userId) {
         String sql = "DELETE FROM users WHERE id = ?";
         int deleted = jdbcTemplate.update(sql, userId);
@@ -357,7 +346,6 @@ public class UserDbStorage implements UserStorage {
         }
     }
 
-    @Override
     public List<Event> getFeed(Long userId) {
         String sql = """
                 SELECT event_id, user_id, entity_id, event_type, operation, timestamp

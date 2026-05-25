@@ -1,8 +1,10 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.SortBy;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.Collection;
@@ -16,23 +18,23 @@ public class FilmController {
     private final FilmService filmService;
 
     @PostMapping
-    public Film create(@RequestBody Film film) {
-        return filmService.create(film);
+    public Film create(@Valid @RequestBody Film film) {
+        return filmService.addFilm(film);
     }
 
     @PutMapping
-    public Film update(@RequestBody Film film) {
-        return filmService.update(film);
+    public Film update(@Valid @RequestBody Film film) {
+        return filmService.updateFilm(film);
     }
 
     @GetMapping
     public Collection<Film> getAll() {
-        return filmService.getAll();
+        return filmService.getFilms();
     }
 
     @GetMapping("/{id}")
     public Film getById(@PathVariable Long id) {
-        return filmService.getById(id);
+        return filmService.getFilmById(id);
     }
 
     @DeleteMapping("/{id}")
@@ -64,13 +66,20 @@ public class FilmController {
 
     @GetMapping("/director/{directorId}")
     public List<Film> getFilmsByDirector(@PathVariable Long directorId,
-                                         @RequestParam String sortBy) {
-        return filmService.getFilmsByDirector(directorId, sortBy);
+                                         @RequestParam SortBy sortBy) {
+        return filmService.getFilmsByDirectorId(directorId, sortBy);
     }
 
     @GetMapping("/search")
     public List<Film> searchFilms(@RequestParam String query,
                                   @RequestParam String by) {
         return filmService.searchFilms(query, by);
+    }
+
+    @PutMapping("/{filmId}/like/{userId}/{rate}")
+    public void addMark(@PathVariable Long filmId,
+                        @PathVariable Long userId,
+                        @PathVariable String rate) {
+        filmService.addMark(filmId, userId, rate);
     }
 }

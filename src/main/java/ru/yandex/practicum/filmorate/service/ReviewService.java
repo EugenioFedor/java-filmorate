@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Review;
-import ru.yandex.practicum.filmorate.storage.review.ReviewDbStorage;
+import ru.yandex.practicum.filmorate.storage.ReviewDbStorage;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +22,7 @@ public class ReviewService {
 
     public Review addFilmReview(Review review) {
         userService.getById(review.getUserId());
-        filmService.getById(review.getFilmId());
+        filmService.getFilmById(review.getFilmId());
 
         review.setCreatedAt(LocalDateTime.now().withNano(0));
         review.setUseful(0);
