@@ -1,6 +1,6 @@
 # java-filmorate
 
-Template repository for Filmorate project.
+Movie recommendation platform with reviews, search, recommendations and event feed
 
 ## 📚 Схема базы данных
 
