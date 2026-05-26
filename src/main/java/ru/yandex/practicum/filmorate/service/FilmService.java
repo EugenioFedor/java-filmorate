@@ -11,7 +11,9 @@ import ru.yandex.practicum.filmorate.storage.GenreDbStorage;
 import ru.yandex.practicum.filmorate.storage.MpaDbStorage;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +26,10 @@ public class FilmService {
     private final MpaDbStorage mpaStorage;
     private final UserService userService;
     private final DirectorService directorService;
+
+    private static boolean isNumeric(String str) {
+        return str != null && str.matches("\\d+");
+    }
 
     public Film addFilm(Film film) {
         validateFilm(film, "new");
@@ -196,10 +202,6 @@ public class FilmService {
         }
 
         return result;
-    }
-
-    private static boolean isNumeric(String str) {
-        return str != null && str.matches("\\d+");
     }
 
     private void loggingFilmLikes(Long filmId, Long userId, Integer rate, String action) {
