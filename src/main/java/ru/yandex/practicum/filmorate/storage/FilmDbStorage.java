@@ -146,14 +146,14 @@ public class FilmDbStorage extends BaseDbStorage<Film> {
 
     public List<Film> getMostPopularFilms(int limit, Integer year, Long genreId) {
         StringBuilder sql = new StringBuilder("""
-                SELECT f.*,
-                       m.name AS mpa_name,
-                       COALESCE(ROUND(AVG(l.rate),2),0) AS overall_rate
-                FROM films f
-                LEFT JOIN mpa_ratings m ON f.mpa_id = m.id
-                LEFT JOIN likes l ON f.id = l.film_id
-                WHERE 1 = 1
-                """);
+            SELECT f.*,
+                   m.name AS mpa_name,
+                   COALESCE(ROUND(AVG(l.rate), 2), 0) AS overall_rate
+            FROM films f
+            LEFT JOIN mpa_ratings m ON f.mpa_id = m.id
+            LEFT JOIN likes l ON f.id = l.film_id
+            WHERE 1 = 1
+            """);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
 
@@ -164,21 +164,21 @@ public class FilmDbStorage extends BaseDbStorage<Film> {
 
         if (genreId != null) {
             sql.append("""
-                    AND EXISTS (
-                        SELECT 1
-                        FROM film_genres fg
-                        WHERE fg.film_id = f.id
-                          AND fg.genre_id = :genreId
-                    )
-                    """);
+                AND EXISTS (
+                    SELECT 1
+                    FROM film_genres fg
+                    WHERE fg.film_id = f.id
+                      AND fg.genre_id = :genreId
+                )
+                """);
             params.addValue("genreId", genreId);
         }
 
         sql.append("""
-                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
-                ORDER BY overall_rate DESC, f.id ASC
-                LIMIT :limit
-                """);
+            GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name
+            ORDER BY COUNT(l.user_id) DESC, f.id ASC
+            LIMIT :limit
+            """);
 
         params.addValue("limit", limit);
 
@@ -227,7 +227,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> {
                        SELECT film_id FROM likes WHERE user_id = :friendId
                 )
                 GROUP BY f.id, m.name
-                ORDER BY overall_rate DESC, f.id ASC
+                ORDER BY COUNT(l.user_id) DESC, f.id ASC
                 """;
         Map<String, ?> params = Map.of("userId", userId, "friendId", friendId);
 
