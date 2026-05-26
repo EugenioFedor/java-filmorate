@@ -10,6 +10,11 @@
 hs_err_pid*
 out/
 target/
+db/
+*.db
+*.trace.db
+.idea/
+*.iml
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
